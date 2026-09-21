@@ -276,10 +276,10 @@ function treemap(items,W,H){ /* 큰 것부터 둘로 나눠 가며 긴 변을 �
   })(items.slice().sort((a,b)=>b.size-a.size),0,0,W,H);return out;
 }
 function treeHTML(){
-  const TD=LIVE.themes||{},val=t=>st.tm==="flow"?t.flow:st.tm==="today"?(TD[t.n]||{}).chg:t.ret3m,key=st.tm;
+  const TD=LIVE.themes||{},amtMode=st.tm==="flow"&&!B.prev,val=t=>amtMode?((TD[t.n]||{}).amt||0)/1e8:st.tm==="flow"?t.flow:st.tm==="today"?(TD[t.n]||{}).chg:t.ret3m,key=st.tm;
   const T=B.themes.filter(t=>t.aum>0).sort((a,b)=>b.aum-a.aum).slice(0,innerWidth<1000?12:30),mx=Math.max(st.tm==="today"?.5:1,...T.map(t=>Math.abs(val(t)||0)));
   return `<div class="tree">${treemap(T.map(t=>({t,size:Math.sqrt(t.aum)})),100,100).map(o=>{const v=val(o.t)||0,a=Math.round(18+62*Math.abs(v)/mx),xs=o.h<9||o.w<16,sm=!xs&&(o.w<24||o.h<14);
-    return `<button class="tile ${xs?"xs":sm?"sm":""}" title="${o.t.n} ${key==="flow"?eokTxt(v*1e8):pct(v,key==="today"?2:1)}" data-act="theme" data-v="${o.t.n}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;background:color-mix(in srgb,var(--${v>=0?"up":"down"}) ${v?a:0}%,var(--surface))"><b>${o.t.n}</b><span>${key==="flow"?(v?eokTxt(v*1e8):"–"):val(o.t)==null?"–":pct(v,key==="today"?2:1)}</span></button>`;}).join("")}</div>`;
+    return `<button class="tile ${xs?"xs":sm?"sm":""}" title="${o.t.n} ${key==="flow"?eokTxt(v*1e8):pct(v,key==="today"?2:1)}" data-act="theme" data-v="${o.t.n}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;background:color-mix(in srgb,var(--${amtMode?"accent":v>=0?"up":"down"}) ${v?a:0}%,var(--surface))"><b>${o.t.n}</b><span>${key==="flow"?(v?eokTxt(v*1e8).replace(amtMode?"+":"\u0000",""):"–"):val(o.t)==null?"–":pct(v,key==="today"?2:1)}</span></button>`;}).join("")}</div>`;
 }
 
 /* ── 조각 ── */
@@ -329,7 +329,7 @@ function signalsCard(limit){
     ${up.length||dn.length?`<div class="rows">${up.slice(0,limit).concat(dn.slice(0,Math.max(2,limit-up.length))).map(sigRow).join("")}</div>`:noSignal()}</section>`;
 }
 function themeCard(){
-  const note=st.tm==="flow"&&!B.prev?"수급은 다음 기준일부터 나옵니다."
+  const note=st.tm==="flow"&&!B.prev?(Object.keys(LIVE.themes||{}).length?"오늘 거래대금 · 설정·환매 수급은 다음 기준일부터":"장이 열리면 나옵니다.")
     :st.tm==="today"&&!Object.keys(LIVE.themes||{}).length?"장이 열리면 나옵니다.":`크기 = 순자산 · 빨강 ${st.tm==="flow"?"유입 · 파랑 유출":"상승 · 파랑 하락"}`;
   return `<section class="card"><header><h2>테마 지도</h2><span class="seg" role="group" aria-label="색 기준">${[["ret","3개월"],["today","오늘"],["flow","수급"]].map(a=>`<button data-act="tm" data-v="${a[0]}" aria-pressed="${st.tm===a[0]}">${a[1]}</button>`).join("")}</span></header>
     ${treeHTML()}<p class="sub" style="margin:.5rem 0 0">${note}</p></section>`;
@@ -372,7 +372,7 @@ function mainHTML(){
       <label class="check" for="noReit2" style="margin:-.3rem 0 .4rem"><input type="checkbox" id="noReit2" ${st.noReit?"checked":""}><span>리츠 빼기</span></label>
       ${innerWidth<1000?`<div class="rows">${list.map(sigRow).join("")||'<p class="sub">해당 종목이 없습니다.</p>'}</div>`:`<div class="tablewrap"><table><thead><tr><th>종목</th><th class="only-wide">무슨 일이 있었나</th><th class="r">지금</th><th class="r">추정 규모</th><th class="r only-wide">평소 거래 대비</th><th class="r">확신도</th></tr></thead><tbody>${list.map(c=>{const s=S(c);return `<tr data-act="open" data-v="${c}"><td><span class="nm">${s.name}</span> ${kindChip(s.kind)}${s.div?' <span class="chip warn">엇갈림</span>':""}<br><span class="sub">${s.theme}${Math.abs(s.streak)>=3?` · ${Math.abs(s.streak)}일 연속`:""}</span></td><td class="only-wide">${s.why}</td><td class="r num">${liveTxt(c)}</td><td class="r num ${sgn(s.net)}">${eokTxt(s.net)}</td><td class="r num only-wide">${s.str}배</td><td class="r">${meter(s.conv)} <span class="num">${s.conv}</span></td></tr>`;}).join("")||`<tr><td colspan="6" class="sub">해당 종목이 없습니다.</td></tr>`}</tbody></table></div>`}`:noSignal()}</section>`;
   }
-  if(st.tab==="theme")return themeCard()+`<section class="card"><header><h2>테마별</h2></header><div class="tablewrap"><table><thead><tr><th>테마</th><th class="r">3개월</th><th class="r">수급</th><th class="r only-wide">ETF 수</th><th class="r only-wide">순자산</th><th>매매 종목</th></tr></thead><tbody>${B.themes.map(t=>`<tr data-act="theme" data-v="${t.n}"><td><span class="nm">${t.n}</span></td><td class="r num ${sgn(t.ret3m)}">${pct(t.ret3m)}</td><td class="r num ${sgn(t.flow)}">${t.flow?eokTxt(t.flow*1e8):"–"}</td><td class="r num only-wide">${t.etfs}</td><td class="r num only-wide">${capTxt(t.aum)}</td><td class="sub">${t.up.map(c=>`<span class="up">${S(c).name}</span>`).concat(t.down.map(c=>`<span class="down">${S(c).name}</span>`)).join(", ")||"–"}</td></tr>`).join("")}</tbody></table></div></section>`+hotCard(20);
+  if(st.tab==="theme")return themeCard()+`<section class="card"><header><h2>테마별</h2></header><div class="tablewrap"><table><thead><tr><th>테마</th><th class="r">3개월</th><th class="r">${B.prev?"수급":"거래대금"}</th><th class="r only-wide">ETF 수</th><th class="r only-wide">순자산</th><th>매매 종목</th></tr></thead><tbody>${B.themes.map(t=>`<tr data-act="theme" data-v="${t.n}"><td><span class="nm">${t.n}</span></td><td class="r num ${sgn(t.ret3m)}">${pct(t.ret3m)}</td><td class="r num ${B.prev?sgn(t.flow):""}">${B.prev?(t.flow?eokTxt(t.flow*1e8):"–"):((LIVE.themes||{})[t.n]||{}).amt?eokTxt(((LIVE.themes||{})[t.n]).amt).replace("+",""):"–"}</td><td class="r num only-wide">${t.etfs}</td><td class="r num only-wide">${capTxt(t.aum)}</td><td class="sub">${t.up.map(c=>`<span class="up">${S(c).name}</span>`).concat(t.down.map(c=>`<span class="down">${S(c).name}</span>`)).join(", ")||"–"}</td></tr>`).join("")}</tbody></table></div></section>`+hotCard(20);
   if(st.tab==="rank")return `<section class="card"><header><h2>영향도 랭킹 ${info("score")}</h2><span class="sub"><span id="rankN">${ranked().length}</span>종목</span></header>${tipBox("score")}
     <div class="filter"><label for="capMax"><span>시가총액 상한</span><span class="num" id="capLbl">${capTxt(capNow())} 이하</span></label><input type="range" id="capMax" min="3000" max="${capMax()}" step="1000" value="${capNow()}">
     <label class="check" for="noReit"><input type="checkbox" id="noReit" ${st.noReit?"checked":""}><span>리츠 빼기</span></label></div>
