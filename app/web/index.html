@@ -208,6 +208,7 @@ function sampleLive(B){
   const ser=(k)=>{const a=[];for(let i=0;i<70;i++){const t=9*60+1+i*2,hh=String(Math.floor(t/60)).padStart(2,"0"),mm=String(t%60).padStart(2,"0");a.push({time:hh+mm+"00",fin:k*(i*62+Math.sin(i/4)*600)*1e8,foreign:k*(-i*9+Math.cos(i/5)*400)*1e8,indiv:k*(-i*70+Math.sin(i/6)*500)*1e8,inst:k*i*80e8});}return a;};
   const K=ser(1),Q=ser(-.12),last=a=>({...a[a.length-1],nonarb:a[a.length-1].fin*.4});
   return {open:true,at:"2026-09-21T11:20:00",quotes,index:{KOSPI:{price:6999.96,chg:1.53},KOSDAQ:{price:835.86,chg:1.06}},market:{KOSPI:last(K),KOSDAQ:last(Q)},series:{KOSPI:K,KOSDAQ:Q},
+    themes:Object.fromEntries(B.themes.map((t,i)=>[t.n,{chg:+(Math.sin(i*1.9)*2.4).toFixed(2),amt:(900+i*310)*1e8}])),
     etfs:B.hotEtfs.map((e,i)=>({code:e.code,name:e.name,chg:[2.8,1.9,1.2,-0.6][i],gap:[0.31,0.22,0.05,-0.12][i]}))};
 }
 
@@ -274,9 +275,10 @@ function treemap(items,W,H){ /* 큰 것부터 둘로 나눠 가며 긴 변을 �
   })(items.slice().sort((a,b)=>b.size-a.size),0,0,W,H);return out;
 }
 function treeHTML(){
-  const key=st.tm==="flow"?"flow":"ret3m",T=B.themes.filter(t=>t.aum>0),mx=Math.max(1,...T.map(t=>Math.abs(t[key]||0)));
-  return `<div class="tree">${treemap(T.map(t=>({t,size:Math.sqrt(t.aum)})),100,100).map(o=>{const v=o.t[key]||0,a=Math.round(18+62*Math.abs(v)/mx),xs=o.h<11||o.w<11,sm=!xs&&(o.w<19||o.h<21);
-    return `<button class="tile ${xs?"xs":sm?"sm":""}" title="${o.t.n} ${key==="flow"?eokTxt(v*1e8):pct(v)}" data-act="theme" data-v="${o.t.n}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;background:color-mix(in srgb,var(--${v>=0?"up":"down"}) ${v?a:0}%,var(--surface))"><b>${o.t.n}</b><span>${key==="flow"?(v?eokTxt(v*1e8):"–"):pct(v)}</span></button>`;}).join("")}</div>`;
+  const TD=LIVE.themes||{},val=t=>st.tm==="flow"?t.flow:st.tm==="today"?(TD[t.n]||{}).chg:t.ret3m,key=st.tm;
+  const T=B.themes.filter(t=>t.aum>0),mx=Math.max(st.tm==="today"?.5:1,...T.map(t=>Math.abs(val(t)||0)));
+  return `<div class="tree">${treemap(T.map(t=>({t,size:Math.sqrt(t.aum)})),100,100).map(o=>{const v=val(o.t)||0,a=Math.round(18+62*Math.abs(v)/mx),xs=o.h<11||o.w<11,sm=!xs&&(o.w<19||o.h<21);
+    return `<button class="tile ${xs?"xs":sm?"sm":""}" title="${o.t.n} ${key==="flow"?eokTxt(v*1e8):pct(v,key==="today"?2:1)}" data-act="theme" data-v="${o.t.n}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;background:color-mix(in srgb,var(--${v>=0?"up":"down"}) ${v?a:0}%,var(--surface))"><b>${o.t.n}</b><span>${key==="flow"?(v?eokTxt(v*1e8):"–"):val(o.t)==null?"–":pct(v,key==="today"?2:1)}</span></button>`;}).join("")}</div>`;
 }
 
 /* ── 조각 ── */
@@ -326,9 +328,10 @@ function signalsCard(limit){
     ${up.length||dn.length?`<div class="rows">${up.slice(0,limit).concat(dn.slice(0,Math.max(2,limit-up.length))).map(sigRow).join("")}</div>`:noSignal()}</section>`;
 }
 function themeCard(){
-  if(!B.prev)st.tm="ret";
-  return `<section class="card"><header><h2>테마 지도</h2>${B.prev?`<span class="seg" role="group" aria-label="색 기준"><button data-act="tm" data-v="ret" aria-pressed="${st.tm==="ret"}">3개월 수익률</button><button data-act="tm" data-v="flow" aria-pressed="${st.tm==="flow"}">들어온 돈</button></span>`:`<span class="sub">3개월 수익률</span>`}</header>
-    ${treeHTML()}<p class="sub" style="margin:.5rem 0 0">칸 크기 = ETF 순자산 · 빨강 ${st.tm==="flow"?"유입, 파랑 유출":"상승, 파랑 하락"} · 누르면 상세</p></section>`;
+  const note=st.tm==="flow"&&!B.prev?"들어온 돈은 어제와 비교해 계산합니다 — 다음 기준일부터 채워집니다."
+    :st.tm==="today"&&!Object.keys(LIVE.themes||{}).length?"장이 열리면 채워집니다.":`칸 크기 = ETF 순자산 · 빨강 ${st.tm==="flow"?"유입, 파랑 유출":"상승, 파랑 하락"} · 누르면 상세`;
+  return `<section class="card"><header><h2>테마 지도</h2><span class="seg" role="group" aria-label="색 기준">${[["ret","3개월 수익률"],["today","오늘"],["flow","들어온 돈"]].map(a=>`<button data-act="tm" data-v="${a[0]}" aria-pressed="${st.tm===a[0]}">${a[1]}</button>`).join("")}</span></header>
+    ${treeHTML()}<p class="sub" style="margin:.5rem 0 0">${note}</p></section>`;
 }
 function hotCard(limit){
   const L=(LIVE.etfs||[]).reduce((m,e)=>(m[e.code]=e,m),{}),list=B.hotEtfs.slice(0,limit),mx=Math.max(1,...B.hotEtfs.map(e=>Math.abs(e.ret3m||0)));
@@ -420,7 +423,8 @@ function marketHTML(k){
 }
 function themeHTML(t){
   return dHead+`<div><h2>${t.n}</h2><p class="sub" style="margin:.3rem 0 0">ETF ${t.etfs}개 · 순자산 ${capTxt(t.aum)}</p></div>
-  <section class="card"><div class="kv"><div><span class="v ${sgn(t.ret3m)}">${pct(t.ret3m)}</span><span class="k">3개월 수익률</span></div><div><span class="v ${sgn(t.flow)}">${B.prev?eokTxt(t.flow*1e8):"–"}</span><span class="k">들어온 돈</span></div><div><span class="v">${t.up.length}<span class="muted"> / </span>${t.down.length}</span><span class="k">늘린 / 줄인 종목</span></div></div></section>
+  <section class="card"><div class="kv"><div><span class="v ${sgn(t.ret3m)}">${pct(t.ret3m)}</span><span class="k">3개월 수익률</span></div><div><span class="v ${sgn(((LIVE.themes||{})[t.n]||{}).chg)}">${pct(((LIVE.themes||{})[t.n]||{}).chg,2)}</span><span class="k">오늘</span></div><div><span class="v ${sgn(t.flow)}">${B.prev?eokTxt(t.flow*1e8):"–"}</span><span class="k">들어온 돈${B.prev?"":" (내일부터)"}</span></div></div>
+    <p class="sub" style="margin:.6rem 0 0">오늘 거래대금 <b class="num">${((LIVE.themes||{})[t.n]||{}).amt?eokTxt(((LIVE.themes||{})[t.n]).amt).replace("+",""):"–"}</b> · 늘린 종목 ${t.up.length} · 줄인 종목 ${t.down.length}</p></section>
   <section class="card"><header><h2>이 테마의 ETF</h2></header><div class="rows">${(t.etfList||[]).map((e,i)=>`<button class="row" data-act="etf" data-v="${e.code}"><span class="rank-no">${i+1}</span><span><span class="nm">${e.name}${e.active?' <span class="chip acc">액티브</span>':""}</span><span class="sub">${capTxt(e.aum)}</span></span><span class="rt ${sgn(e.ret3m)}">${pct(e.ret3m)}</span></button>`).join("")||'<p class="sub">없음</p>'}</div></section>
   <section class="card"><header><h2>ETF 영향이 큰 종목</h2></header><div class="rows">${(t.top||[]).filter(S).map((c,i)=>{const s=S(c);return `<button class="row" data-act="open" data-v="${c}"><span class="rank-no">${i+1}</span><span><span class="nm">${s.name} ${kindChip(s.kind)}</span><span class="sub">영향도 ${s.score} · ${s.B}일치</span></span><span class="rt">${liveTxt(c)}</span></button>`;}).join("")||'<p class="sub">없음</p>'}</div></section>`;
 }

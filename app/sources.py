@@ -36,7 +36,8 @@ def etf_list() -> list[dict]:
         raise SourceError(f"ETF 목록이 비정상적으로 적습니다: {len(items)}개")
     return [{"code": i["itemcode"], "name": i["itemname"], "tab": int(i["etfTabCode"]),
              "price": _num(i.get("nowVal")), "nav": _num(i.get("nav")), "chg": _num(i.get("changeRate")),
-             "ret3m": _num(i.get("threeMonthEarnRate")), "aum_eok": _num(i.get("marketSum")) or 0.0}
+             "ret3m": _num(i.get("threeMonthEarnRate")), "aum_eok": _num(i.get("marketSum")) or 0.0,
+             "amount": (_num(i.get("amonut")) or 0.0) * 1e6}  # 거래대금(원). 자료원의 철자가 amonut 이다
             for i in items]
 
 

@@ -15,7 +15,7 @@ from . import build, config, db, notifier, sources
 log = logging.getLogger("intraday")
 KST = ZoneInfo("Asia/Seoul")
 MARKETS = ("KOSPI", "KOSDAQ")
-_state = {"open": False, "at": None, "day": None, "quotes": {}, "etfs": [], "market": {}, "index": {}, "series": {}}
+_state = {"open": False, "at": None, "day": None, "quotes": {}, "etfs": [], "market": {}, "index": {}, "series": {}, "themes": {}}
 _alerted: set[tuple[str, str]] = set()  # (날짜, 종목) — 하루 한 번만 알린다
 _lock = threading.Lock()
 
@@ -53,9 +53,11 @@ def tick() -> None:
         b = build.cached()
         rt = sources.realtime(watch_codes(b)) if b.get("asof") else {"open": False, "quotes": {}}
         hot = {e["code"] for e in b.get("hotEtfs", [])}
+        listing = sources.etf_list()
         etfs = [{"code": e["code"], "name": e["name"], "chg": e["chg"],
                  "gap": round((e["price"] / e["nav"] - 1) * 100, 2) if e["price"] and e["nav"] else None}
-                for e in sources.etf_list() if e["code"] in hot]  # 괴리율: 돈이 몰리는 ETF는 NAV보다 비싸게 거래된다
+                for e in listing if e["code"] in hot]  # 괴리율: 돈이 몰리는 ETF는 NAV보다 비싸게 거래된다
+        themes = _themes_today(listing)
         index = sources.index_quotes()
     except Exception as ex:
         log.warning("장중 시세 실패: %s", ex)
@@ -78,10 +80,24 @@ def tick() -> None:
                 log.warning("%s 시장 수급 실패: %s", m, ex)
     with _lock:
         _state.update(open=rt["open"], at=now.isoformat(timespec="seconds"), day=day, quotes=rt["quotes"], index=index,
-                      etfs=sorted(etfs, key=lambda e: -(e["chg"] or 0)),
+                      etfs=sorted(etfs, key=lambda e: -(e["chg"] or 0)), themes=themes,
                       market=market or _state["market"], series=series or _state["series"])
     if rt["open"]:
         _alert(b, rt["quotes"])
+
+
+def _themes_today(listing: list[dict]) -> dict:
+    """테마별 오늘 등락률(순자산 가중)과 거래대금. '들어온 돈'은 이틀치가 있어야 하지만 이것은 당일에 바로 나온다."""
+    with db.session() as con:
+        theme_of = {r["code"]: r["theme"] for r in con.execute("SELECT code, theme FROM etf")}
+    acc: dict[str, list[float]] = {}
+    for e in listing:
+        t = theme_of.get(e["code"])
+        if not t or e["chg"] is None or not e["aum_eok"]:
+            continue
+        a = acc.setdefault(t, [0.0, 0.0, 0.0])
+        a[0] += e["chg"] * e["aum_eok"]; a[1] += e["aum_eok"]; a[2] += e["amount"]
+    return {t: {"chg": round(a[0] / a[1], 2), "amt": a[2]} for t, a in acc.items() if a[1]}
 
 
 def _alert(b: dict, quotes: dict) -> None:
