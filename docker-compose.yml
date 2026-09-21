@@ -1,0 +1,28 @@
+# ETF 매집 레이더 — 개인 프로젝트.
+#
+# 켜기: docker compose up -d --build     상태: docker compose ps     로그: docker compose logs -f app
+# 화면: http://<노트북 IP>:3200  (같은 와이파이 안에서)
+# 데이터는 도커 볼륨 etf-data 에 쌓인다. 구성종목 과거치는 어디서도 다시 받을 수 없으니 이 볼륨을 지우지 말 것.
+
+name: etf-radar
+
+services:
+  app:
+    build: .
+    image: etf-radar:local
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+    env_file:
+      - path: ./secrets/etf-radar.env   # 없어도 뜬다: 알림·비밀번호만 꺼진 채로 동작
+        required: false
+    volumes:
+      - etf-data:/data
+    ports:
+      - "3200:3200"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+volumes:
+  etf-data:
