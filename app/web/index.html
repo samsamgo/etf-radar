@@ -40,8 +40,8 @@ h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.015em;text-wrap:ba
 
 /* 상단 */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.top .in{max-width:1360px;margin-inline:auto;padding:.6rem 16px;display:flex;align-items:center;gap:1rem}
-.brand{font-family:var(--display);font-weight:800;font-size:1.1rem;display:flex;align-items:center;gap:.5rem;white-space:nowrap}
+.top .in{max-width:1360px;margin-inline:auto;padding:.6rem 16px;display:flex;align-items:center;gap:.6rem}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem;display:flex;align-items:center;gap:.45rem;white-space:nowrap}
 .brand i{width:1.35rem;height:1.35rem;border-radius:50%;border:2px solid var(--accent);position:relative;display:inline-block;flex:none}
 .brand i::after{content:"";position:absolute;inset:3px;border-radius:50%;background:conic-gradient(from 20deg,var(--accent) 0 28%,transparent 0)}
 .nav{display:none;gap:.15rem;flex:1}
@@ -118,9 +118,9 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--raised)} td.r,th.r{text
 .only-wide{display:none}
 
 /* 트리맵 */
-.tree{position:relative;width:100%;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:var(--raised)}
+.tree{position:relative;width:100%;aspect-ratio:1/1.05;border-radius:12px;overflow:hidden;background:var(--raised)}
 .tile{position:absolute;padding:.4rem .5rem;border:1px solid var(--surface);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;line-height:1.2}
-.tile b{font-size:.9rem;font-weight:600} .tile span{font-family:var(--mono);font-size:.8rem;font-weight:600}
+.tile b{font-size:.9rem;font-weight:600;white-space:nowrap} .tile span{font-family:var(--mono);font-size:.8rem;font-weight:600;white-space:nowrap}
 .tile.sm{padding:.25rem .3rem} .tile.sm b{font-size:.7rem;white-space:nowrap} .tile.sm span{font-size:.66rem}
 .tile.xs{padding:.15rem .25rem;justify-content:center} .tile.xs b{font-size:.62rem;white-space:nowrap} .tile.xs span{display:none} .tile[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:-2px;z-index:1}
 
@@ -156,6 +156,7 @@ dl.gloss{margin:0;display:grid;gap:.7rem} dl.gloss dt{font-weight:600} dl.gloss 
   .stamp .asof{display:inline} .nav{display:flex} .tabbar{display:none} .page{grid-template-columns:minmax(0,1fr) 21rem;padding-bottom:2rem}
   .page.single{grid-template-columns:minmax(0,1fr)} .rail{position:sticky;top:4.2rem;align-self:start}
   .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:start} .only-wide{display:table-cell} .only-narrow{display:none}
+  .tree{aspect-ratio:16/10}
   .hero .say{font-size:1.3rem} .hero .say b{font-size:2.1rem;display:inline} .hero .say .tail{margin-left:.3em}
 }
 </style>
@@ -229,16 +230,16 @@ const kindChip=k=>k?`<span class="chip ${cls(k)}">${ARROW[k]} ${KO[k]}</span>`:"
 const liveTxt=c=>{const x=q(c);return x?`<span class="${sgn(x.chg)}">${pct(x.chg)}</span>`:"";};
 const meter=v=>`<span class="meter" title="확신도 ${v}">${[20,40,60,80,100].map(t=>`<i class="${v>=t-10?"on":""}"></i>`).join("")}</span>`;
 const GLOSS={
-  fin:["금융투자(증권사)","증권사가 자기 계정으로 하는 매매입니다. ETF에 돈이 들어오면 증권사가 그 ETF에 담긴 종목들을 사서 채워 넣기 때문에, 금융투자 순매수가 크면 ETF 쪽으로 돈이 들어오고 있을 가능성이 있습니다. 시장 전체 숫자이고, 어느 종목인지는 다음 날 구성종목 비교로 확인합니다."],
-  conv:["확신도","몇 곳의 ETF가 같이 움직였는지, 평소 거래량에 비해 얼마나 큰 규모인지, 운용역이 직접 고르는 액티브 ETF가 끼어 있는지를 합친 0~100점입니다."],
-  score:["영향도","ETF가 이 종목을 사고팔 때 주가가 얼마나 크게 움직일지를 0~100점으로 매긴 값입니다. 작은 회사인데 ETF가 많이 들고 있을수록 높습니다."],
-  B:["며칠치 거래량","ETF들이 가진 물량을 평소 하루 거래대금으로 나눈 값입니다. 5일치라면, ETF가 다 팔려면 닷새 동안의 거래를 혼자 차지해야 한다는 뜻입니다."],
-  shares:["왜 주식수로 보나","ETF 안 '비중'은 주가만 올라도 저절로 커집니다. '주식수'는 실제로 사거나 팔아야만 바뀌므로, 주식수 변화만 시그널로 칩니다."],
-  div:["엇갈림","같은 종목을 어떤 ETF는 사고 어떤 ETF는 판 경우입니다. 운용역들의 판단이 갈린다는 뜻이라 한쪽으로 쏠린 시그널보다 약하게 봅니다."],
-  flow:["자금 유입","그 테마의 ETF가 새로 발행(설정)된 금액입니다. 돈이 들어오면 ETF는 담고 있는 종목을 기계적으로 더 삽니다."],
-  hot:["잘나가는 ETF","순자산 500억 원 이상이면서 최근 3개월 수익률이 국내 주식형 상위 30%인 ETF입니다. 시장이 빠질 때는 '덜 빠진 ETF'라는 뜻이 됩니다."],
-  gap:["괴리율","ETF 시장가격이 실제 가치(NAV)보다 얼마나 비싼지입니다. 사려는 돈이 몰리면 +로 벌어집니다."],
-  cap:["상한 근접(추정)","테마 ETF는 보통 한 종목 비중에 상한이 있습니다. 주가가 올라 비중이 25%를 넘으면 정기변경 때 초과분을 팔 수 있습니다. 지수마다 상한이 달라 추정입니다."],
+  fin:["증권사(금융투자)","ETF에 돈이 들어오면 증권사가 구성종목을 사서 채웁니다. 순매수가 크면 ETF로 돈이 들어오는 중일 수 있습니다."],
+  conv:["확신도","ETF 몇 곳이, 얼마나 크게, 액티브까지 같이 움직였는지를 합친 0~100점."],
+  score:["영향도","ETF가 사고팔 때 주가가 얼마나 움직일지 0~100점. 작은 회사를 ETF가 많이 들수록 높습니다."],
+  B:["거래량 대비","ETF 보유분 ÷ 하루 거래대금. 5일치면 ETF 물량이 닷새 거래량과 같습니다."],
+  shares:["주식수 기준","비중은 주가만 올라도 변합니다. 주식수는 실제로 사고팔아야 변합니다."],
+  div:["엇갈림","같은 종목을 어떤 ETF는 사고 어떤 ETF는 판 경우. 약한 신호로 봅니다."],
+  flow:["수급","ETF에 새로 들어오거나 빠진 돈(설정·환매). 전일과 비교해 계산합니다."],
+  hot:["잘나가는 ETF","순자산 500억 이상 · 3개월 수익률 상위 30%. 하락장에서는 덜 빠진 ETF입니다."],
+  gap:["괴리율","ETF 가격이 실제 가치보다 비싼 정도. 매수가 몰리면 +."],
+  cap:["상한 근접","한 종목 비중이 25%를 넘으면 정기변경 때 팔 수 있습니다. 지수마다 달라 추정입니다."],
 };
 const info=k=>`<button class="info" data-act="tip" data-v="${k}" aria-label="${GLOSS[k][0]} 설명">i</button>`;
 const tipBox=k=>st.tip===k?`<div class="tip"><b>${GLOSS[k][0]}</b> — ${GLOSS[k][1]}</div>`:"";
@@ -265,7 +266,7 @@ function flowChart(pts,narrow){
     <circle cx="${x1}" cy="${y(last.fin)}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
     ${nar?`<text x="${x1}" y="${Math.max(12,y(last.fin)-10)}" text-anchor="end" style="font-size:13px;font-weight:600;fill:var(--accent)">${eokTxt(last.fin)}</text>`
          :`<text x="${x1+9}" y="${y(last.fin)+4}" style="font-size:12px;font-weight:600;fill:var(--accent)">${eokTxt(last.fin)}</text>`}</svg>
-    <div class="legend"><span><i style="background:var(--accent);height:4px"></i><b>금융투자(증권사)</b></span><span><i style="background:var(--ink3)"></i>외국인</span><span><i style="background:var(--warn)"></i>개인</span><span class="muted">단위 억 원 · 오늘 누적</span></div>`;
+    <div class="legend"><span><i style="background:var(--accent);height:4px"></i><b>증권사</b></span><span><i style="background:var(--ink3)"></i>외국인</span><span><i style="background:var(--warn)"></i>개인</span><span class="muted">억 원 · 누적</span></div>`;
 }
 function treemap(items,W,H){ /* 큰 것부터 둘로 나눠 가며 긴 변을 자른다 */
   const out=[];(function cut(list,x,y,w,h){
@@ -276,8 +277,8 @@ function treemap(items,W,H){ /* 큰 것부터 둘로 나눠 가며 긴 변을 �
 }
 function treeHTML(){
   const TD=LIVE.themes||{},val=t=>st.tm==="flow"?t.flow:st.tm==="today"?(TD[t.n]||{}).chg:t.ret3m,key=st.tm;
-  const T=B.themes.filter(t=>t.aum>0),mx=Math.max(st.tm==="today"?.5:1,...T.map(t=>Math.abs(val(t)||0)));
-  return `<div class="tree">${treemap(T.map(t=>({t,size:Math.sqrt(t.aum)})),100,100).map(o=>{const v=val(o.t)||0,a=Math.round(18+62*Math.abs(v)/mx),xs=o.h<11||o.w<11,sm=!xs&&(o.w<19||o.h<21);
+  const T=B.themes.filter(t=>t.aum>0).sort((a,b)=>b.aum-a.aum).slice(0,innerWidth<1000?12:30),mx=Math.max(st.tm==="today"?.5:1,...T.map(t=>Math.abs(val(t)||0)));
+  return `<div class="tree">${treemap(T.map(t=>({t,size:Math.sqrt(t.aum)})),100,100).map(o=>{const v=val(o.t)||0,a=Math.round(18+62*Math.abs(v)/mx),xs=o.h<9||o.w<16,sm=!xs&&(o.w<24||o.h<14);
     return `<button class="tile ${xs?"xs":sm?"sm":""}" title="${o.t.n} ${key==="flow"?eokTxt(v*1e8):pct(v,key==="today"?2:1)}" data-act="theme" data-v="${o.t.n}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;background:color-mix(in srgb,var(--${v>=0?"up":"down"}) ${v?a:0}%,var(--surface))"><b>${o.t.n}</b><span>${key==="flow"?(v?eokTxt(v*1e8):"–"):val(o.t)==null?"–":pct(v,key==="today"?2:1)}</span></button>`;}).join("")}</div>`;
 }
 
@@ -285,28 +286,28 @@ function treeHTML(){
 function stripHTML(){
   const I=LIVE.index||{},M=LIVE.market||{},Sr=LIVE.series||{},cells=[];
   [["KOSPI","코스피"],["KOSDAQ","코스닥"]].forEach(([k,n])=>{if(I[k])cells.push(`<button class="cell" data-act="market" data-v="${k}"><span class="k">${n} ›</span><span class="v">${I[k].price.toLocaleString(undefined,{minimumFractionDigits:2})}</span><span class="d ${sgn(I[k].chg)}">${pct(I[k].chg,2)}</span></button>`);});
-  [["KOSPI","코스피 증권사"],["KOSDAQ","코스닥 증권사"]].forEach(([k,n])=>{if(M[k])cells.push(`<button class="cell" data-act="market" data-v="${k}"><span class="k">${n} 순매수 ›</span><span class="v ${sgn(M[k].fin)}">${eokTxt(M[k].fin)}</span>${spark((Sr[k]||[]).map(p=>p.fin),M[k].fin>=0?"var(--up)":"var(--down)",26)}</button>`);});
-  [["KOSPI","코스피 외국인","foreign"],["KOSPI","코스피 프로그램","nonarb"]].forEach(([k,n,f])=>{if(M[k]&&M[k][f]!=null)cells.push(`<button class="cell" data-act="market" data-v="${k}"><span class="k">${n} ›</span><span class="v ${sgn(M[k][f])}">${eokTxt(M[k][f])}</span><span class="d muted">${hhmm(M[k].time)} 누적</span></button>`);});
+  [["KOSPI","증권사 · 코스피"],["KOSDAQ","증권사 · 코스닥"]].forEach(([k,n])=>{if(M[k])cells.push(`<button class="cell" data-act="market" data-v="${k}"><span class="k">${n} ›</span><span class="v ${sgn(M[k].fin)}">${eokTxt(M[k].fin)}</span>${spark((Sr[k]||[]).map(p=>p.fin),M[k].fin>=0?"var(--up)":"var(--down)",26)}</button>`);});
+  [["KOSPI","외국인 · 코스피","foreign"],["KOSPI","프로그램 · 코스피","nonarb"]].forEach(([k,n,f])=>{if(M[k]&&M[k][f]!=null)cells.push(`<button class="cell" data-act="market" data-v="${k}"><span class="k">${n} ›</span><span class="v ${sgn(M[k][f])}">${eokTxt(M[k][f])}</span><span class="d muted">${hhmm(M[k].time)}</span></button>`);});
   return cells.length?`<div class="strip">${cells.join("")}</div>`:"";
 }
 function heroHTML(){
   const pts=(LIVE.series||{})[st.mkt]||[],m=(LIVE.market||{})[st.mkt],nm=st.mkt==="KOSPI"?"코스피":"코스닥";
-  if(!m||pts.length<2)return `<section class="card hero"><span class="eyebrow">증권사는 지금</span><p class="say">장이 열리면 증권사 순매수를 1분마다 보여 드립니다.</p></section>`;
-  return `<section class="card hero"><div style="display:flex;justify-content:space-between;gap:.75rem;align-items:center;flex-wrap:wrap"><span class="eyebrow">증권사는 지금 ${info("fin")}</span>
+  if(!m||pts.length<2)return `<section class="card hero"><span class="eyebrow">증권사 순매수</span><p class="say">장이 열리면 나옵니다.</p></section>`;
+  return `<section class="card hero"><div style="display:flex;justify-content:space-between;gap:.75rem;align-items:center;flex-wrap:wrap"><span class="eyebrow">증권사 순매수 · ${nm} ${info("fin")}</span>
     <span class="seg" role="group" aria-label="시장">${[["KOSPI","코스피"],["KOSDAQ","코스닥"]].map(a=>`<button data-act="mkt" data-v="${a[0]}" aria-pressed="${st.mkt===a[0]}">${a[1]}</button>`).join("")}</span></div>
-    <p class="say">증권사가 오늘 ${nm}에서 <b class="${sgn(m.fin)}">${eokTxt(m.fin)} 원</b><span class="tail">${m.fin>=0?"순매수":"순매도"} ${LIVE.open&&!B.static?"중입니다":"했습니다"}.</span></p>
-    <p class="sub" style="margin:0">기관 합계 <span class="num ${sgn(m.inst)}">${eokTxt(m.inst)}</span> · 외국인 <span class="num ${sgn(m.foreign)}">${eokTxt(m.foreign)}</span> · 개인 <span class="num ${sgn(m.indiv)}">${eokTxt(m.indiv)}</span> · ${hhmm(m.time)} 기준</p>
+    <p class="say"><b class="${sgn(m.fin)}" style="display:inline">${eokTxt(m.fin)}</b></p>
+    <p class="sub" style="margin:0">기관 <span class="num ${sgn(m.inst)}">${eokTxt(m.inst)}</span> · 외국인 <span class="num ${sgn(m.foreign)}">${eokTxt(m.foreign)}</span> · 개인 <span class="num ${sgn(m.indiv)}">${eokTxt(m.indiv)}</span> · ${hhmm(m.time)}</p>
     ${tipBox("fin")}${flowChart(pts)}</section>`;
 }
 function picksHTML(){
   if(!B.picks.length)return"";const sig=B.pickMode==="signal";
-  return `<section><div style="display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;margin:0 .25rem .6rem"><h2 style="font-size:1.15rem">${sig?"ETF가 가장 세게 산 종목":"ETF에 가장 민감한 종목"} ${info(sig?"conv":"score")}</h2><button class="more" style="color:var(--accent);font-weight:600;font-size:.88rem" data-act="tab" data-v="${sig?"signal":"rank"}">전체 보기 ›</button></div>
-    ${tipBox(sig?"conv":"score")}${sig?"":`<p class="sub" style="margin:-.3rem .25rem .6rem">매매 시그널은 다음 기준일부터. 지금은 영향도 순입니다.</p>`}
+  return `<section><div style="display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;margin:0 .25rem .6rem"><h2 style="font-size:1.15rem">${sig?"ETF가 많이 산 종목":"ETF 민감 종목"} ${info(sig?"conv":"score")}</h2><button class="more" style="color:var(--accent);font-weight:600;font-size:.88rem" data-act="tab" data-v="${sig?"signal":"rank"}">전체 ›</button></div>
+    ${tipBox(sig?"conv":"score")}${sig?"":`<p class="sub" style="margin:-.3rem .25rem .6rem">시그널은 다음 기준일부터 · 지금은 영향도 순</p>`}
     <div class="picks">${B.picks.map((c,i)=>{const s=S(c),x=q(c);return `<button class="pick" data-act="open" data-v="${c}"><div class="hd"><div><span class="no">${i+1}</span> <span class="chip">${s.theme}</span> ${kindChip(s.kind)}<h3>${s.name}</h3></div><div class="px">${x?x.price.toLocaleString()+"<br>"+liveTxt(c):""}</div></div>
-      ${spark(s.px,trend(s.px),40)}<p>${sig?s.why:`ETF 보유 = 거래량 <b class="num">${s.B}일치</b> · 지분 <b class="num">${s.A}%</b>`}</p>
-      <div class="sub">${sig?`확신도 ${meter(s.conv)} <span class="num">${s.conv}</span> · 추정 <span class="num">${eokTxt(s.net)}</span> 원`:`영향도 <span class="num">${s.score}</span> · ETF ${s.etfN}곳(액티브 ${s.actN})`}</div></button>`;}).join("")}</div></section>`;
+      ${spark(s.px,trend(s.px),40)}<p>${sig?s.why:`거래량 <b class="num">${s.B}일치</b> · 지분 <b class="num">${s.A}%</b>`}</p>
+      <div class="sub">${sig?`확신도 ${meter(s.conv)} <span class="num">${s.conv}</span> · <span class="num">${eokTxt(s.net)}</span>`:`영향도 <span class="num">${s.score}</span> · ETF ${s.etfN}`}</div></button>`;}).join("")}</div></section>`;
 }
-const sigRow=c=>{const s=S(c);return `<button class="row" data-act="open" data-v="${c}"><span class="side ${sgn(s.net)}"></span><span><span class="nm">${s.name} ${kindChip(s.kind)}${s.div?'<span class="chip warn">엇갈림</span>':""}</span><span class="sub">${s.theme} · 추정 <span class="num">${eokTxt(s.net)}</span> 원 · 확신도 ${meter(s.conv)}</span></span><span class="rt">${liveTxt(c)||`<span class="muted">${s.score}점</span>`}</span></button>`;};
+const sigRow=c=>{const s=S(c);return `<button class="row" data-act="open" data-v="${c}"><span class="side ${sgn(s.net)}"></span><span><span class="nm">${s.name} ${kindChip(s.kind)}${s.div?'<span class="chip warn">엇갈림</span>':""}</span><span class="sub">${s.theme} · <span class="num">${eokTxt(s.net)}</span> · ${meter(s.conv)}</span></span><span class="rt">${liveTxt(c)||`<span class="muted">${s.score}점</span>`}</span></button>`;};
 /* 매매 내역: 어느 ETF가 무슨 종목을 얼마나 */
 const wTxt=t=>t.kind==="NEW"?`비중 0 → ${t.w1.toFixed(1)}%`:t.kind==="EXIT"?`비중 ${t.w0.toFixed(1)}% → 0`:`비중 ${t.w0.toFixed(1)} → ${t.w1.toFixed(1)}%`;
 const tradeRow=t=>`<div class="row"><span class="side ${sgn(t.amt)}"></span><span><span class="nm"><button data-act="open" data-v="${t.code}" style="font-weight:600;text-decoration:underline;text-underline-offset:3px">${t.name}</button> ${kindChip(t.kind)}</span>
@@ -316,40 +317,41 @@ function tradesHTML(){
   const T=B.trades||[];if(!T.length)return noSignal();
   const by={};T.forEach(t=>{const e=by[t.etf]||(by[t.etf]={etf:t.etf,name:t.etfName,buy:0,sell:0,n:0});e.n++;t.amt>0?e.buy+=t.amt:e.sell+=t.amt;});
   const etfs=Object.values(by).sort((a,b)=>(b.buy-b.sell)-(a.buy-a.sell)),sel=st.etf&&by[st.etf],list=sel?T.filter(t=>t.etf===st.etf):T.slice(0,60);
-  return `<p class="sub" style="margin:-.2rem 0 .6rem">금액은 추정치 · 위 버튼으로 ETF별로 걸러 보기</p>
+  return `<p class="sub" style="margin:-.2rem 0 .6rem">금액은 추정</p>
     <div class="chips scroll">${sel?`<button data-act="etff" data-v="" aria-pressed="true">${sel.name} ✕</button>`:etfs.slice(0,12).map(e=>`<button data-act="etff" data-v="${e.etf}">${e.name} <span class="num muted">${e.n}</span></button>`).join("")}</div>
-    ${sel?`<div class="kv" style="margin-bottom:.6rem"><div><span class="v up">${eokTxt(sel.buy)}</span><span class="k">산 금액</span></div><div><span class="v down">${eokTxt(sel.sell)}</span><span class="k">판 금액</span></div><div><span class="v">${sel.n}건</span><span class="k">바꾼 종목</span></div></div>`:""}
-    <div class="rows">${list.map(tradeRow).join("")}</div>${!sel&&B.tradeCount>list.length?`<p class="sub" style="margin:.6rem 0 0">큰 순서로 ${list.length}건 (전체 ${B.tradeCount}건)</p>`:""}`;
+    ${sel?`<div class="kv" style="margin-bottom:.6rem"><div><span class="v up">${eokTxt(sel.buy)}</span><span class="k">매수</span></div><div><span class="v down">${eokTxt(sel.sell)}</span><span class="k">매도</span></div><div><span class="v">${sel.n}</span><span class="k">종목</span></div></div>`:""}
+    <div class="rows">${list.map(tradeRow).join("")}</div>${!sel&&B.tradeCount>list.length?`<p class="sub" style="margin:.6rem 0 0">상위 ${list.length}건 / 전체 ${B.tradeCount}건</p>`:""}`;
 }
-const noSignal=()=>B.prev?`<div class="empty">${dateKo(B.asof)}: 변화 없음</div>`:`<div class="empty"><b>시그널은 다음 기준일부터 나옵니다.</b><br>전일과 비교해야 하는데 아직 하루치(${dateKo(B.asof)})만 있습니다.</div>`;
+const noSignal=()=>B.prev?`<div class="empty">${dateKo(B.asof)}: 변화 없음</div>`:`<div class="empty">시그널은 다음 기준일부터 나옵니다.</div>`;
 function signalsCard(limit){
   const ok=c=>!(st.noReit&&S(c).theme===REIT),up=B.signals.up.filter(ok),dn=B.signals.down.filter(ok);
-  return `<section class="card"><header><h2>ETF가 늘리고 줄인 종목 ${info("shares")}</h2>${up.length+dn.length>limit?`<button class="more" data-act="tab" data-v="signal">전체 ${up.length+dn.length}개 ›</button>`:""}</header>${tipBox("shares")}
+  return `<section class="card"><header><h2>ETF 매매 종목 ${info("shares")}</h2>${up.length+dn.length>limit?`<button class="more" data-act="tab" data-v="signal">전체 ${up.length+dn.length}개 ›</button>`:""}</header>${tipBox("shares")}
     ${up.length||dn.length?`<div class="rows">${up.slice(0,limit).concat(dn.slice(0,Math.max(2,limit-up.length))).map(sigRow).join("")}</div>`:noSignal()}</section>`;
 }
 function themeCard(){
-  const note=st.tm==="flow"&&!B.prev?"들어온 돈은 어제와 비교해 계산합니다 — 다음 기준일부터 채워집니다."
-    :st.tm==="today"&&!Object.keys(LIVE.themes||{}).length?"장이 열리면 채워집니다.":`칸 크기 = ETF 순자산 · 빨강 ${st.tm==="flow"?"유입, 파랑 유출":"상승, 파랑 하락"} · 누르면 상세`;
-  return `<section class="card"><header><h2>테마 지도</h2><span class="seg" role="group" aria-label="색 기준">${[["ret","3개월 수익률"],["today","오늘"],["flow","들어온 돈"]].map(a=>`<button data-act="tm" data-v="${a[0]}" aria-pressed="${st.tm===a[0]}">${a[1]}</button>`).join("")}</span></header>
+  const note=st.tm==="flow"&&!B.prev?"수급은 다음 기준일부터 나옵니다."
+    :st.tm==="today"&&!Object.keys(LIVE.themes||{}).length?"장이 열리면 나옵니다.":`크기 = 순자산 · 빨강 ${st.tm==="flow"?"유입 · 파랑 유출":"상승 · 파랑 하락"}`;
+  return `<section class="card"><header><h2>테마 지도</h2><span class="seg" role="group" aria-label="색 기준">${[["ret","3개월"],["today","오늘"],["flow","수급"]].map(a=>`<button data-act="tm" data-v="${a[0]}" aria-pressed="${st.tm===a[0]}">${a[1]}</button>`).join("")}</span></header>
     ${treeHTML()}<p class="sub" style="margin:.5rem 0 0">${note}</p></section>`;
 }
 function hotCard(limit){
   const L=(LIVE.etfs||[]).reduce((m,e)=>(m[e.code]=e,m),{}),list=B.hotEtfs.slice(0,limit),mx=Math.max(1,...B.hotEtfs.map(e=>Math.abs(e.ret3m||0)));
-  return `<section class="card"><header><h2>잘나가는 ETF ${info("hot")}</h2><span class="sub">${B.hotEtfs.length}개 중 상위</span></header>${tipBox("hot")}
+  return `<section class="card"><header><h2>잘나가는 ETF ${info("hot")}</h2><span class="sub">${B.hotEtfs.length}개</span></header>${tipBox("hot")}
     <div class="rows">${list.map((e,i)=>{const l=L[e.code];return `<button class="row" data-act="etf" data-v="${e.code}"><span class="rank-no">${i+1}</span><span><span class="nm">${e.name}${e.active?' <span class="chip acc">액티브</span>':""}</span><span class="sub">${e.theme} · ${capTxt(e.aum)} · ${e.top.join(", ")}${e.buys||e.sells?` · <b><span class="up">매수 ${e.buys}</span> · <span class="down">매도 ${e.sells}</span></b>`:""}</span><span class="bar" style="display:block;margin-top:.3rem"><i style="width:${Math.abs(e.ret3m||0)/mx*100}%;background:var(--${(e.ret3m||0)>=0?"up":"down"})"></i></span></span>
       <span class="rt"><span class="${sgn(e.ret3m)}">${pct(e.ret3m)}</span><br><span class="sub num">${l?`오늘 <span class="${sgn(l.chg)}">${pct(l.chg)}</span>`:"3개월"}</span></span></button>`;}).join("")||'<p class="sub">아직 없습니다.</p>'}</div></section>`;
 }
 function railHTML(){
   const ev=B.events.filter(e=>dday(e.date)>=0).slice(0,3),w=B.watch.filter(S);
-  return `<section class="card"><header><h2>관심종목</h2></header>${w.length?`<div class="rows">${w.map(c=>{const s=S(c),x=q(c);return `<button class="row" data-act="open" data-v="${c}"><span class="side ${sgn(s.net)}"></span><span><span class="nm">${s.name} ${kindChip(s.kind)}</span><span class="sub">${s.theme}</span></span><span class="rt">${x?x.price.toLocaleString()+"<br>":""}${liveTxt(c)}</span></button>`;}).join("")}</div>`:`<p class="sub" style="margin:0">종목에서 ☆을 누르면 여기에 모입니다.</p>`}</section>
-  <section class="card"><header><h2>다가오는 일정</h2><button class="more" data-act="tab" data-v="cal">전체 ›</button></header>${ev.map(evHTML).join("")||'<p class="sub" style="margin:0">등록된 일정이 없습니다.</p>'}</section>
-  <p class="foot">참고 자료이며 매수·매도 추천이 아닙니다. 금액은 추정치입니다.</p>`;
+  return `<section class="card"><header><h2>관심종목</h2></header>${w.length?`<div class="rows">${w.map(c=>{const s=S(c),x=q(c);return `<button class="row" data-act="open" data-v="${c}"><span class="side ${sgn(s.net)}"></span><span><span class="nm">${s.name} ${kindChip(s.kind)}</span><span class="sub">${s.theme}</span></span><span class="rt">${x?x.price.toLocaleString()+"<br>":""}${liveTxt(c)}</span></button>`;}).join("")}</div>`:`<p class="sub" style="margin:0">종목에서 ☆을 누르세요.</p>`}</section>
+  <section class="card"><header><h2>일정</h2><button class="more" data-act="tab" data-v="cal">전체 ›</button></header>${ev.map(evHTML).join("")||'<p class="sub" style="margin:0">등록된 일정이 없습니다.</p>'}</section>
+  <p class="foot">참고용 · 추천 아님 · 금액은 추정</p>`;
 }
 const evHTML=e=>`<div class="ev"><div class="dd">D-${dday(e.date)}<small>${dateKo(e.date)}</small></div><div><h3>${e.t}</h3><p>${e.note||""}</p></div></div>`;
 const capMax=()=>Math.max(...B.rank.map(c=>S(c).cap),10000), capNow=()=>st.cap??Math.min(capMax(),100000), REIT="리츠·부동산";
 const ranked=()=>B.rank.filter(c=>S(c).cap<=capNow()&&!(st.noReit&&S(c).theme===REIT));
 function rankRows(){
   const L=ranked().slice(0,120),mb=Math.max(1,...L.map(c=>S(c).B));
+  if(innerWidth<1000)return L.map((c,i)=>{const s=S(c);return `<button class="row" data-act="open" data-v="${c}"><span class="rank-no">${i+1}</span><span><span class="nm">${s.name} ${kindChip(s.kind)}</span><span class="sub">${s.theme} · ${capTxt(s.cap)} · <span class="num">${s.B}일치</span></span></span><span class="rt"><b style="color:var(--accent);font-size:1.1rem">${s.score}</b><br>${liveTxt(c)}</span></button>`;}).join("");
   return L.map((c,i)=>{const s=S(c);return `<tr data-act="open" data-v="${c}"><td class="r num muted">${i+1}</td><td><span class="nm">${s.name}</span> ${kindChip(s.kind)}<br><span class="sub">${s.theme}<span class="only-narrow"> · ${capTxt(s.cap)}</span></span></td><td class="r num">${liveTxt(c)}</td>
     <td class="only-wide" style="width:7rem">${spark(s.px,trend(s.px),24,false)}</td><td class="r num only-wide">${s.A}%</td><td style="min-width:6.5rem"><span class="num">${s.B}일치</span><span class="bar" style="display:block;margin-top:.2rem"><i style="width:${s.B/mb*100}%"></i></span></td>
     <td class="r num only-wide">${s.C}%</td><td class="r num only-wide">${capTxt(s.cap)}</td><td class="r"><b class="num" style="color:var(--accent);font-size:1.05rem">${s.score}</b></td></tr>`;}).join("");
@@ -363,28 +365,28 @@ function mainHTML(){
   if(st.tab==="signal"){
     const all=up.concat(dn).filter(c=>!(st.noReit&&S(c).theme===REIT)),f={all:()=>true,NEW:s=>s.kind==="NEW",UP:s=>s.kind==="UP",DOWN:s=>s.kind==="DOWN",EXIT:s=>s.kind==="EXIT",div:s=>s.div}[st.sig],list=all.filter(c=>f(S(c)));
     const n=k=>all.filter(c=>S(c).kind===k).length;
-    const head=`<header><h2>${st.sv==="trade"?"어느 ETF가 무엇을 얼마나":"ETF가 늘리고 줄인 종목"} ${info("shares")}</h2><span class="seg" role="group" aria-label="보기"><button data-act="sv" data-v="stock" aria-pressed="${st.sv!=="trade"}">종목별</button><button data-act="sv" data-v="trade" aria-pressed="${st.sv==="trade"}">ETF별 매매 내역</button></span></header>${tipBox("shares")}`;
+    const head=`<header><h2>${st.sv==="trade"?"ETF별 매매":"ETF 매매 종목"} ${info("shares")}</h2><span class="seg" role="group" aria-label="보기"><button data-act="sv" data-v="stock" aria-pressed="${st.sv!=="trade"}">종목별</button><button data-act="sv" data-v="trade" aria-pressed="${st.sv==="trade"}">ETF별</button></span></header>${tipBox("shares")}`;
     if(st.sv==="trade")return `<section class="card">${head}${tradesHTML()}</section>`;
     return `<section class="card">${head}<p class="sub" style="margin:-.2rem 0 .6rem">${dateKo(B.asof)} 기준</p>
       ${all.length?`<div class="chips">${[["all","전체 "+all.length],["NEW","▲ 신규편입 "+n("NEW")],["UP","▲ 확대 "+n("UP")],["DOWN","▼ 축소 "+n("DOWN")],["EXIT","▼ 편출 "+n("EXIT")],["div","엇갈림 "+all.filter(c=>S(c).div).length]].map(a=>`<button data-act="sig" data-v="${a[0]}" aria-pressed="${st.sig===a[0]}">${a[1]}</button>`).join("")}</div>${st.sig==="div"?tipBox("div")||`<div class="tip"><b>${GLOSS.div[0]}</b> — ${GLOSS.div[1]}</div>`:""}
       <label class="check" for="noReit2" style="margin:-.3rem 0 .4rem"><input type="checkbox" id="noReit2" ${st.noReit?"checked":""}><span>리츠 빼기</span></label>
       ${innerWidth<1000?`<div class="rows">${list.map(sigRow).join("")||'<p class="sub">해당 종목이 없습니다.</p>'}</div>`:`<div class="tablewrap"><table><thead><tr><th>종목</th><th class="only-wide">무슨 일이 있었나</th><th class="r">지금</th><th class="r">추정 규모</th><th class="r only-wide">평소 거래 대비</th><th class="r">확신도</th></tr></thead><tbody>${list.map(c=>{const s=S(c);return `<tr data-act="open" data-v="${c}"><td><span class="nm">${s.name}</span> ${kindChip(s.kind)}${s.div?' <span class="chip warn">엇갈림</span>':""}<br><span class="sub">${s.theme}${Math.abs(s.streak)>=3?` · ${Math.abs(s.streak)}일 연속`:""}</span></td><td class="only-wide">${s.why}</td><td class="r num">${liveTxt(c)}</td><td class="r num ${sgn(s.net)}">${eokTxt(s.net)}</td><td class="r num only-wide">${s.str}배</td><td class="r">${meter(s.conv)} <span class="num">${s.conv}</span></td></tr>`;}).join("")||`<tr><td colspan="6" class="sub">해당 종목이 없습니다.</td></tr>`}</tbody></table></div>`}`:noSignal()}</section>`;
   }
-  if(st.tab==="theme")return themeCard()+`<section class="card"><header><h2>테마별 흐름</h2></header><div class="tablewrap"><table><thead><tr><th>테마</th><th class="r">3개월</th><th class="r">자금 유입</th><th class="r only-wide">ETF 수</th><th class="r only-wide">순자산</th><th>늘린 · 줄인 종목</th></tr></thead><tbody>${B.themes.map(t=>`<tr data-act="theme" data-v="${t.n}"><td><span class="nm">${t.n}</span></td><td class="r num ${sgn(t.ret3m)}">${pct(t.ret3m)}</td><td class="r num ${sgn(t.flow)}">${t.flow?eokTxt(t.flow*1e8):"–"}</td><td class="r num only-wide">${t.etfs}</td><td class="r num only-wide">${capTxt(t.aum)}</td><td class="sub">${t.up.map(c=>`<span class="up">${S(c).name}</span>`).concat(t.down.map(c=>`<span class="down">${S(c).name}</span>`)).join(", ")||"–"}</td></tr>`).join("")}</tbody></table></div></section>`+hotCard(20);
-  if(st.tab==="rank")return `<section class="card"><header><h2>ETF 영향도 랭킹 ${info("score")}</h2><span class="sub"><span id="rankN">${ranked().length}</span>종목</span></header>${tipBox("score")}
-    <div class="filter"><label for="capMax"><span>시가총액 상한</span><span class="num" id="capLbl">${capTxt(capNow())} 원 이하</span></label><input type="range" id="capMax" min="3000" max="${capMax()}" step="1000" value="${capNow()}">
+  if(st.tab==="theme")return themeCard()+`<section class="card"><header><h2>테마별</h2></header><div class="tablewrap"><table><thead><tr><th>테마</th><th class="r">3개월</th><th class="r">수급</th><th class="r only-wide">ETF 수</th><th class="r only-wide">순자산</th><th>매매 종목</th></tr></thead><tbody>${B.themes.map(t=>`<tr data-act="theme" data-v="${t.n}"><td><span class="nm">${t.n}</span></td><td class="r num ${sgn(t.ret3m)}">${pct(t.ret3m)}</td><td class="r num ${sgn(t.flow)}">${t.flow?eokTxt(t.flow*1e8):"–"}</td><td class="r num only-wide">${t.etfs}</td><td class="r num only-wide">${capTxt(t.aum)}</td><td class="sub">${t.up.map(c=>`<span class="up">${S(c).name}</span>`).concat(t.down.map(c=>`<span class="down">${S(c).name}</span>`)).join(", ")||"–"}</td></tr>`).join("")}</tbody></table></div></section>`+hotCard(20);
+  if(st.tab==="rank")return `<section class="card"><header><h2>영향도 랭킹 ${info("score")}</h2><span class="sub"><span id="rankN">${ranked().length}</span>종목</span></header>${tipBox("score")}
+    <div class="filter"><label for="capMax"><span>시가총액 상한</span><span class="num" id="capLbl">${capTxt(capNow())} 이하</span></label><input type="range" id="capMax" min="3000" max="${capMax()}" step="1000" value="${capNow()}">
     <label class="check" for="noReit"><input type="checkbox" id="noReit" ${st.noReit?"checked":""}><span>리츠 빼기</span></label></div>
-    <div class="tablewrap"><table><thead><tr><th class="r">#</th><th>종목</th><th class="r">지금</th><th class="only-wide">30일</th><th class="r only-wide">지분 중 ETF</th><th>거래량 대비 ${info("B")}</th><th class="r only-wide">잘나가는 ETF 몫</th><th class="r only-wide">시가총액</th><th class="r">영향도</th></tr></thead><tbody id="ranklist">${rankRows()}</tbody></table></div>${tipBox("B")}</section>`;
-  return `<section class="card"><header><h2>리밸런싱 일정</h2></header><p class="sub" style="margin:-.3rem 0 .5rem">ETF가 비중을 다시 맞추는 날 · 사흘 전부터 알림</p>${B.events.filter(e=>dday(e.date)>=0).map(evHTML).join("")||'<p class="sub">등록된 일정이 없습니다.</p>'}
-    <div class="empty" style="margin-top:.75rem">테마 지수 일정은 자동으로 받을 수 없습니다. 서버의 <span class="num">calendar.json</span>에 추가하면 나옵니다.</div></section>
+    ${innerWidth<1000?`<div class="rows" id="ranklist">${rankRows()}</div>`:`<div class="tablewrap"><table><thead><tr><th class="r">#</th><th>종목</th><th class="r">지금</th><th class="only-wide">30일</th><th class="r only-wide">지분 중 ETF</th><th>거래량 대비 ${info("B")}</th><th class="r only-wide">잘나가는 ETF 몫</th><th class="r only-wide">시가총액</th><th class="r">영향도</th></tr></thead><tbody id="ranklist">${rankRows()}</tbody></table></div>`}${tipBox("B")}</section>`;
+  return `<section class="card"><header><h2>리밸런싱 일정</h2></header><p class="sub" style="margin:-.3rem 0 .5rem">ETF 비중 조정일 · 3일 전 알림</p>${B.events.filter(e=>dday(e.date)>=0).map(evHTML).join("")||'<p class="sub">등록된 일정이 없습니다.</p>'}
+    <div class="empty" style="margin-top:.75rem">테마 지수 일정은 <span class="num">calendar.json</span>에 직접 추가</div></section>
     <section class="card"><header><h2>용어 풀이</h2></header><dl class="gloss">${Object.values(GLOSS).map(g=>`<div><dt>${g[0]}</dt><dd>${g[1]}</dd></div>`).join("")}</dl></section>`;
 }
 function appHTML(){
   const head=`<header class="top"><div class="in"><span class="brand"><i></i>ETF 매집 레이더</span><nav class="nav" aria-label="주 메뉴">${TABS.map(t=>`<button data-act="tab" data-v="${t[0]}" ${t[0]===st.tab?'aria-current="page"':""}>${t[1]}</button>`).join("")}</nav>
-    <span class="stamp"><span class="dot ${LIVE.open&&!B.static?"on":""}"></span><span>${B.static?(LIVE.at?LIVE.at.slice(5,10).replace("-","/")+" "+LIVE.at.slice(11,16)+" 기준":"저장된 결과"):LIVE.open?"실시간":"장 마감"}<span class="asof">${B.asof?` · 구성종목 ${dateKo(B.asof)}`:""}</span></span></span>
+    <span class="stamp"><span class="dot ${LIVE.open&&!B.static?"on":""}"></span><span>${B.static?(LIVE.at?LIVE.at.slice(11,16):"저장본"):LIVE.open?"실시간":"마감"}<span class="asof">${B.static&&LIVE.at?" 기준":""}${B.asof?` · 구성종목 ${dateKo(B.asof)}`:""}</span></span></span>
     <span class="fs" role="group" aria-label="글씨 크기"><button data-act="font" data-v="0" aria-pressed="${!document.documentElement.classList.contains("big")}" style="font-size:.8rem">가</button><button data-act="font" data-v="1" aria-pressed="${document.documentElement.classList.contains("big")}" style="font-size:1.05rem">가</button></span></div>
-    ${B.sample?`<div class="notice-bar"><b>화면 시안입니다.</b> 종목·ETF 이름과 숫자는 모두 가상의 예시이며 실제 시장 정보가 아닙니다.</div>`:B.status&&!B.status.ok?`<div class="notice-bar"><b>마지막 수집이 실패했습니다.</b> ${B.status.msg}</div>`:""}</header>`;
-  if(!B.asof)return head+`<main class="page single"><div class="empty"><b>${B.collecting?"첫 데이터를 모으는 중입니다.":"아직 데이터가 없습니다."}</b><br>10~20분 뒤 새로 고쳐 주세요.</div></main>`;
+    ${B.sample?`<div class="notice-bar"><b>예시 화면</b> · 가상 데이터</div>`:B.status&&!B.status.ok?`<div class="notice-bar"><b>수집 실패</b> · ${B.status.msg}</div>`:""}</header>`;
+  if(!B.asof)return head+`<main class="page single"><div class="empty"><b>${B.collecting?"첫 수집 중":"데이터 없음"}</b> · 10~20분 뒤 새로고침</div></main>`;
   const rail=st.tab==="home";
   return head+`<main class="page ${rail?"":"single"}"><div class="col">${mainHTML()}</div>${rail?`<div class="col rail">${railHTML()}</div>`:""}</main>
     <nav class="tabbar" aria-label="주 메뉴">${TABS.map(t=>`<button data-act="tab" data-v="${t[0]}" ${t[0]===st.tab?'aria-current="page"':""}>${t[1]}</button>`).join("")}</nav>`;
@@ -393,11 +395,11 @@ function drawerHTML(s){
   const x=q(s.code),w=B.watch.includes(s.code),hv=s.hist.map(h=>h.v);
   return `<div class="bar2"><button class="close" data-act="close">‹ 닫기</button><button class="star" data-act="watch" data-v="${s.code}" aria-pressed="${w}" aria-label="관심종목 ${w?"해제":"추가"}">${w?"★":"☆"}</button></div>
   <div><span class="chip">${s.theme}</span> ${kindChip(s.kind)}${s.div?' <span class="chip warn">엇갈림</span>':""}<h2>${s.name}</h2>${x?`<div class="now">${x.price.toLocaleString()}원 <span class="${sgn(x.chg)}" style="font-size:1.05rem">${pct(x.chg,2)}</span></div>`:""}<p style="margin:.4rem 0 0">${s.why}</p></div>
-  <section class="card"><header><h2>최근 30일 주가</h2></header>${spark(s.px,trend(s.px),80).replace("<svg","<svg class=\"big-spark\"")||'<p class="sub">가격 자료가 없습니다.</p>'}</section>
-  <section class="card"><header><h2>왜 주목하나</h2>${s.kind?`<span class="sub">확신도 ${meter(s.conv)} <span class="num">${s.conv}</span></span>`:""}</header><ul class="why">${s.whys.map(t=>`<li>${t}</li>`).join("")}</ul>${s.tags.some(t=>/상한/.test(t))?`<div class="tip" style="margin:.6rem 0 0;background:var(--warn-bg);color:var(--warn)"><b>주의.</b> 다음 정기변경이 매수가 아니라 <b>매도</b>로 작용할 수 있습니다. ${GLOSS.cap[1]}</div>`:""}</section>
-  <section class="card"><header><h2>ETF에 얼마나 휘둘리나</h2><b class="num" style="color:var(--accent);font-size:1.3rem">${s.score}점</b></header><div class="kv"><div><span class="v">${s.A}%</span><span class="k">회사 지분 중 ETF 보유</span></div><div><span class="v">${s.B}일</span><span class="k">ETF 물량 = 며칠치 거래량</span></div><div><span class="v">${s.C}%</span><span class="k">그중 잘나가는 ETF 몫</span></div></div><p class="sub" style="margin:.6rem 0 0">시가총액 ${capTxt(s.cap)} 원 · ETF ${s.etfN}곳 보유(액티브 ${s.actN}곳)</p></section>
-  <section class="card"><header><h2>ETF들이 들고 있는 주식수</h2></header>${hv.length>1?spark(hv,s.net<0?"var(--down)":"var(--up)",70).replace("<svg","<svg class=\"big-spark\"")+`<div class="sub" style="display:flex;justify-content:space-between"><span>${dateKo(s.hist[0].d)} <span class="num">${Math.round(hv[0]/1e4).toLocaleString()}만 주</span></span><span>${dateKo(s.hist[hv.length-1].d)} <span class="num">${Math.round(hv[hv.length-1]/1e4).toLocaleString()}만 주</span></span></div>`:`<p class="sub" style="margin:0">지금 <b class="num">${hv.length?Math.round(hv[0]/1e4).toLocaleString():"–"}만 주</b>. 추이는 하루씩 쌓이면서 그려집니다.</p>`}</section>
-  <section class="card"><header><h2>어느 ETF가 담고 있나</h2><span class="sub">ETF 안 비중</span></header>${s.holders.map(h=>`<div class="holder"><span><button data-act="etf" data-v="${h.etf}" style="text-decoration:underline;text-underline-offset:3px">${h.name}</button>${h.active?' <span class="chip acc">액티브</span>':""}${h.hot?' <span class="chip">잘나감</span>':""}</span><span class="num">${h.w?h.w.toFixed(1)+"%":"–"}</span><span class="${cls(h.kind)}" style="font-weight:600;min-width:5.5rem;text-align:right">${h.kind?`${ARROW[h.kind]} ${KO[h.kind]}${h.amt?`<br><span class="num" style="font-weight:500;font-size:.85rem">${eokTxt(h.amt)}</span>`:""}`:'<span class="muted">–</span>'}</span></div>`).join("")}
+  <section class="card"><header><h2>30일 주가</h2></header>${spark(s.px,trend(s.px),80).replace("<svg","<svg class=\"big-spark\"")||'<p class="sub">가격 자료가 없습니다.</p>'}</section>
+  <section class="card"><header><h2>이유</h2>${s.kind?`<span class="sub">확신도 ${meter(s.conv)} <span class="num">${s.conv}</span></span>`:""}</header><ul class="why">${s.whys.map(t=>`<li>${t}</li>`).join("")}</ul>${s.tags.some(t=>/상한/.test(t))?`<div class="tip" style="margin:.6rem 0 0;background:var(--warn-bg);color:var(--warn)"><b>주의</b> · 정기변경 때 <b>매도</b>가 나올 수 있습니다.</div>`:""}</section>
+  <section class="card"><header><h2>ETF 영향도</h2><b class="num" style="color:var(--accent);font-size:1.3rem">${s.score}점</b></header><div class="kv"><div><span class="v">${s.A}%</span><span class="k">지분 중 ETF</span></div><div><span class="v">${s.B}일</span><span class="k">거래량 대비</span></div><div><span class="v">${s.C}%</span><span class="k">핫 ETF 몫</span></div></div><p class="sub" style="margin:.6rem 0 0">시총 ${capTxt(s.cap)} · ETF ${s.etfN} (액티브 ${s.actN})</p></section>
+  <section class="card"><header><h2>ETF 보유 주식수</h2></header>${hv.length>1?spark(hv,s.net<0?"var(--down)":"var(--up)",70).replace("<svg","<svg class=\"big-spark\"")+`<div class="sub" style="display:flex;justify-content:space-between"><span>${dateKo(s.hist[0].d)} <span class="num">${Math.round(hv[0]/1e4).toLocaleString()}만 주</span></span><span>${dateKo(s.hist[hv.length-1].d)} <span class="num">${Math.round(hv[hv.length-1]/1e4).toLocaleString()}만 주</span></span></div>`:`<p class="sub" style="margin:0">지금 <b class="num">${hv.length?Math.round(hv[0]/1e4).toLocaleString():"–"}만 주</b> · 추이는 쌓이는 중</p>`}</section>
+  <section class="card"><header><h2>보유 ETF</h2><span class="sub">비중</span></header>${s.holders.map(h=>`<div class="holder"><span><button data-act="etf" data-v="${h.etf}" style="text-decoration:underline;text-underline-offset:3px">${h.name}</button>${h.active?' <span class="chip acc">액티브</span>':""}${h.hot?' <span class="chip">잘나감</span>':""}</span><span class="num">${h.w?h.w.toFixed(1)+"%":"–"}</span><span class="${cls(h.kind)}" style="font-weight:600;min-width:5.5rem;text-align:right">${h.kind?`${ARROW[h.kind]} ${KO[h.kind]}${h.amt?`<br><span class="num" style="font-weight:500;font-size:.85rem">${eokTxt(h.amt)}</span>`:""}`:'<span class="muted">–</span>'}</span></div>`).join("")}
     </section>`;
 }
 
@@ -407,26 +409,26 @@ function etfHTML(e){
   const moved=e.holdings.filter(h=>h.kind),buy=moved.filter(h=>h.amt>0).reduce((a,h)=>a+h.amt,0),sell=moved.filter(h=>h.amt<0).reduce((a,h)=>a+h.amt,0),mw=Math.max(1,...e.holdings.map(h=>h.w));
   const l=(LIVE.etfs||[]).find(x=>x.code===e.code);
   return dHead+`<div><span class="chip">${e.theme}</span>${e.active?' <span class="chip acc">액티브</span>':""}${e.hot?' <span class="chip up">잘나감</span>':""}<h2>${e.name}</h2><p class="sub" style="margin:.3rem 0 0">${e.index||""}${e.issuer?" · "+e.issuer:""}</p></div>
-  <section class="card"><div class="kv"><div><span class="v">${capTxt(e.aum)}</span><span class="k">순자산</span></div><div><span class="v ${sgn(e.ret3m)}">${pct(e.ret3m)}</span><span class="k">3개월 수익률</span></div><div><span class="v ${l?sgn(l.chg):""}">${l?pct(l.chg):"–"}</span><span class="k">오늘</span></div></div>
-    ${e.flow!=null?`<p class="sub" style="margin:.6rem 0 0">들어온 돈 <b class="num ${sgn(e.flow)}">${eokTxt(e.flow*1e8)}</b> (전일 대비)</p>`:""}</section>
-  ${moved.length?`<section class="card"><header><h2>이번에 사고판 종목</h2><span class="sub">${dateKo(e.asof)}</span></header><div class="kv" style="margin-bottom:.5rem"><div><span class="v up">${eokTxt(buy)}</span><span class="k">산 금액</span></div><div><span class="v down">${eokTxt(sell)}</span><span class="k">판 금액</span></div><div><span class="v">${moved.length}건</span><span class="k">바꾼 종목</span></div></div>
+  <section class="card"><div class="kv"><div><span class="v">${capTxt(e.aum)}</span><span class="k">순자산</span></div><div><span class="v ${sgn(e.ret3m)}">${pct(e.ret3m)}</span><span class="k">3개월</span></div><div><span class="v ${l?sgn(l.chg):""}">${l?pct(l.chg):"–"}</span><span class="k">오늘</span></div></div>
+    ${e.flow!=null?`<p class="sub" style="margin:.6rem 0 0">수급 <b class="num ${sgn(e.flow)}">${eokTxt(e.flow*1e8)}</b></p>`:""}</section>
+  ${moved.length?`<section class="card"><header><h2>매매</h2><span class="sub">${dateKo(e.asof)}</span></header><div class="kv" style="margin-bottom:.5rem"><div><span class="v up">${eokTxt(buy)}</span><span class="k">매수</span></div><div><span class="v down">${eokTxt(sell)}</span><span class="k">매도</span></div><div><span class="v">${moved.length}</span><span class="k">종목</span></div></div>
     <div class="rows">${moved.sort((a,b)=>Math.abs(b.amt)-Math.abs(a.amt)).map(h=>`<button class="row" data-act="open" data-v="${h.code||""}"><span class="side ${sgn(h.amt)}"></span><span><span class="nm">${h.name} ${kindChip(h.kind)}</span><span class="sub">${h.pct!=null?`주식수 <span class="num">${pct(h.pct*100,0)}</span> · `:""}비중 <span class="num">${h.w}%</span></span></span><span class="rt ${sgn(h.amt)}">${eokTxt(h.amt)}</span></button>`).join("")}</div></section>`:""}
-  <section class="card"><header><h2>담고 있는 종목</h2><span class="sub">${e.count}개${e.est?" · 비중은 추정":""}</span></header><div class="rows">${e.holdings.filter(h=>h.kind!=="EXIT").map((h,i)=>`<button class="row" data-act="open" data-v="${h.code||""}" ${h.code?"":"disabled"}><span class="rank-no">${i+1}</span><span><span class="nm">${h.name} ${kindChip(h.kind)}</span><span class="bar" style="display:block;margin-top:.3rem"><i style="width:${h.w/mw*100}%"></i></span></span><span class="rt" style="font-weight:600">${h.w}%</span></button>`).join("")}</div>
-    ${e.count>40?`<p class="sub" style="margin:.5rem 0 0">비중 큰 40개만 보여 드립니다.</p>`:""}</section>`;
+  <section class="card"><header><h2>구성종목</h2><span class="sub">${e.count}개${e.est?" · 비중 추정":""}</span></header><div class="rows">${e.holdings.filter(h=>h.kind!=="EXIT").map((h,i)=>`<button class="row" data-act="open" data-v="${h.code||""}" ${h.code?"":"disabled"}><span class="rank-no">${i+1}</span><span><span class="nm">${h.name} ${kindChip(h.kind)}</span><span class="bar" style="display:block;margin-top:.3rem"><i style="width:${h.w/mw*100}%"></i></span></span><span class="rt" style="font-weight:600">${h.w}%</span></button>`).join("")}</div>
+    ${e.count>40?`<p class="sub" style="margin:.5rem 0 0">상위 40개</p>`:""}</section>`;
 }
 function marketHTML(k){
   const m=(LIVE.market||{})[k],I=(LIVE.index||{})[k],pts=(LIVE.series||{})[k]||[],nm=k==="KOSPI"?"코스피":"코스닥";
-  const rows=m?[["금융투자(증권사)","fin"],["기관 합계","inst"],["외국인","foreign"],["개인","indiv"],["프로그램 차익","arb"],["프로그램 비차익","nonarb"]].filter(r=>m[r[1]]!=null):[];
+  const rows=m?[["증권사","fin"],["기관","inst"],["외국인","foreign"],["개인","indiv"],["프로그램 차익","arb"],["프로그램 비차익","nonarb"]].filter(r=>m[r[1]]!=null):[];
   return dHead+`<div><h2>${nm}</h2>${I?`<div class="now">${I.price.toLocaleString(undefined,{minimumFractionDigits:2})} <span class="${sgn(I.chg)}" style="font-size:1.05rem">${pct(I.chg,2)}</span></div>`:""}</div>
-  ${pts.length>1?`<section class="card"><header><h2>오늘 누가 샀나</h2><span class="sub">${hhmm(m&&m.time)} 누적</span></header>${flowChart(pts,true)}</section>`:""}
-  ${rows.length?`<section class="card"><header><h2>투자자별 순매수</h2></header><div class="rows">${rows.map(r=>`<div class="row"><span class="side ${sgn(m[r[1]])}"></span><span class="nm">${r[0]}</span><span class="rt ${sgn(m[r[1]])}" style="font-size:1.05rem;font-weight:600">${eokTxt(m[r[1]])}</span></div>`).join("")}</div><p class="sub" style="margin:.5rem 0 0">${GLOSS.fin[1]}</p></section>`:`<div class="empty">장이 열리면 표시됩니다.</div>`}`;
+  ${pts.length>1?`<section class="card"><header><h2>순매수 흐름</h2><span class="sub">${hhmm(m&&m.time)}</span></header>${flowChart(pts,true)}</section>`:""}
+  ${rows.length?`<section class="card"><header><h2>투자자별</h2></header><div class="rows">${rows.map(r=>`<div class="row"><span class="side ${sgn(m[r[1]])}"></span><span class="nm">${r[0]}</span><span class="rt ${sgn(m[r[1]])}" style="font-size:1.05rem;font-weight:600">${eokTxt(m[r[1]])}</span></div>`).join("")}</div></section>`:`<div class="empty">장이 열리면 나옵니다.</div>`}`;
 }
 function themeHTML(t){
   return dHead+`<div><h2>${t.n}</h2><p class="sub" style="margin:.3rem 0 0">ETF ${t.etfs}개 · 순자산 ${capTxt(t.aum)}</p></div>
-  <section class="card"><div class="kv"><div><span class="v ${sgn(t.ret3m)}">${pct(t.ret3m)}</span><span class="k">3개월 수익률</span></div><div><span class="v ${sgn(((LIVE.themes||{})[t.n]||{}).chg)}">${pct(((LIVE.themes||{})[t.n]||{}).chg,2)}</span><span class="k">오늘</span></div><div><span class="v ${sgn(t.flow)}">${B.prev?eokTxt(t.flow*1e8):"–"}</span><span class="k">들어온 돈${B.prev?"":" (내일부터)"}</span></div></div>
-    <p class="sub" style="margin:.6rem 0 0">오늘 거래대금 <b class="num">${((LIVE.themes||{})[t.n]||{}).amt?eokTxt(((LIVE.themes||{})[t.n]).amt).replace("+",""):"–"}</b> · 늘린 종목 ${t.up.length} · 줄인 종목 ${t.down.length}</p></section>
-  <section class="card"><header><h2>이 테마의 ETF</h2></header><div class="rows">${(t.etfList||[]).map((e,i)=>`<button class="row" data-act="etf" data-v="${e.code}"><span class="rank-no">${i+1}</span><span><span class="nm">${e.name}${e.active?' <span class="chip acc">액티브</span>':""}</span><span class="sub">${capTxt(e.aum)}</span></span><span class="rt ${sgn(e.ret3m)}">${pct(e.ret3m)}</span></button>`).join("")||'<p class="sub">없음</p>'}</div></section>
-  <section class="card"><header><h2>ETF 영향이 큰 종목</h2></header><div class="rows">${(t.top||[]).filter(S).map((c,i)=>{const s=S(c);return `<button class="row" data-act="open" data-v="${c}"><span class="rank-no">${i+1}</span><span><span class="nm">${s.name} ${kindChip(s.kind)}</span><span class="sub">영향도 ${s.score} · ${s.B}일치</span></span><span class="rt">${liveTxt(c)}</span></button>`;}).join("")||'<p class="sub">없음</p>'}</div></section>`;
+  <section class="card"><div class="kv"><div><span class="v ${sgn(t.ret3m)}">${pct(t.ret3m)}</span><span class="k">3개월</span></div><div><span class="v ${sgn(((LIVE.themes||{})[t.n]||{}).chg)}">${pct(((LIVE.themes||{})[t.n]||{}).chg,2)}</span><span class="k">오늘</span></div><div><span class="v ${sgn(t.flow)}">${B.prev?eokTxt(t.flow*1e8):"–"}</span><span class="k">수급</span></div></div>
+    <p class="sub" style="margin:.6rem 0 0">거래대금 <b class="num">${((LIVE.themes||{})[t.n]||{}).amt?eokTxt(((LIVE.themes||{})[t.n]).amt).replace("+",""):"–"}</b> · 매수 ${t.up.length} · 매도 ${t.down.length}</p></section>
+  <section class="card"><header><h2>ETF</h2></header><div class="rows">${(t.etfList||[]).map((e,i)=>`<button class="row" data-act="etf" data-v="${e.code}"><span class="rank-no">${i+1}</span><span><span class="nm">${e.name}${e.active?' <span class="chip acc">액티브</span>':""}</span><span class="sub">${capTxt(e.aum)}</span></span><span class="rt ${sgn(e.ret3m)}">${pct(e.ret3m)}</span></button>`).join("")||'<p class="sub">없음</p>'}</div></section>
+  <section class="card"><header><h2>민감 종목</h2></header><div class="rows">${(t.top||[]).filter(S).map((c,i)=>{const s=S(c);return `<button class="row" data-act="open" data-v="${c}"><span class="rank-no">${i+1}</span><span><span class="nm">${s.name} ${kindChip(s.kind)}</span><span class="sub">영향도 ${s.score} · ${s.B}일치</span></span><span class="rt">${liveTxt(c)}</span></button>`;}).join("")||'<p class="sub">없음</p>'}</div></section>`;
 }
 function sampleEtf(code){
   const hs=[];Object.values(B.stocks).forEach(s=>s.holders.forEach(h=>{if(h.etf===code)hs.push({name:s.name,code:s.code,w:h.w,kind:h.kind,pct:h.pct,amt:h.amt,meta:h,theme:s.theme});}));
@@ -441,7 +443,7 @@ async function getEtf(code){
 /* ── 그리기와 조작 ── */
 function render(){ if(!B)return; $("app").innerHTML=appHTML(); }
 function showDrawer(html){ $("drawer").innerHTML=html; $("drawer").classList.add("on"); $("scrim").classList.add("on"); $("drawer").setAttribute("aria-hidden","false"); $("drawer").scrollTop=0; document.body.style.overflow="hidden"; }
-async function openEtf(code){ st.open="etf:"+code; showDrawer(dHead+`<p class="sub">불러오는 중…</p>`); const e=await getEtf(code); if(st.open!=="etf:"+code)return; showDrawer(e?etfHTML(e):dHead+`<div class="empty">이 ETF의 자료가 아직 없습니다.</div>`); }
+async function openEtf(code){ st.open="etf:"+code; showDrawer(dHead+`<p class="sub">불러오는 중…</p>`); const e=await getEtf(code); if(st.open!=="etf:"+code)return; showDrawer(e?etfHTML(e):dHead+`<div class="empty">자료 없음</div>`); }
 function openDrawer(code){ if(!S(code))return; st.open=code; showDrawer(drawerHTML(S(code))); }
 function closeDrawer(){ if(st.open)setTimeout(render,0); st.open=null; $("drawer").classList.remove("on"); $("scrim").classList.remove("on"); $("drawer").setAttribute("aria-hidden","true"); document.body.style.overflow=""; }
 function setFont(big){ document.documentElement.classList.toggle("big",big); try{localStorage.setItem("etfradar.big",big?"1":"0");}catch(e){} }
@@ -468,7 +470,7 @@ matchMedia("(min-width:1000px)").addEventListener("change",()=>{if(!st.open)rend
 document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&st.open)closeDrawer();});
 document.addEventListener("input",ev=>{
   if(ev.target.id==="noReit2"){st.noReit=ev.target.checked;render();return;}
-  if(ev.target.id==="noReit")st.noReit=ev.target.checked;else if(ev.target.id==="capMax"){st.cap=+ev.target.value;$("capLbl").textContent=capTxt(st.cap)+" 원 이하";}else return;
+  if(ev.target.id==="noReit")st.noReit=ev.target.checked;else if(ev.target.id==="capMax"){st.cap=+ev.target.value;$("capLbl").textContent=capTxt(st.cap)+" 이하";}else return;
   $("ranklist").innerHTML=rankRows();$("rankN").textContent=ranked().length;
 });
 async function getBoot(){

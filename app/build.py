@@ -26,7 +26,7 @@ def index_events(today: Date, months: int = 7) -> list[dict]:
             d = _second_thursday(y, m) + timedelta(days=1)
             if d >= today:
                 out.append({"date": d.isoformat(), "t": "코스피200·코스닥150 정기변경", "s": "지수 정기변경",
-                            "note": "규칙으로 계산한 예상일입니다. 거래소 공지로 확인하세요.", "x": []})
+                            "note": "예상일 · 거래소 공지 확인", "x": []})
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     return out
 
@@ -43,22 +43,21 @@ def _why(s: dict) -> tuple[str, list[str]]:
     n_up, n_dn, act = s["n_up"], s["n_down"], s["n_act_moves"]
     amt = abs(s["net"]) / EOK
     if s["kind"] == "NEW":
-        one = f"ETF {s['n_new']}곳이 새로 담기 시작했습니다."
+        one = f"ETF {s['n_new']}곳 신규편입"
     elif s["kind"] == "EXIT":
-        one = f"ETF {s['n_exit']}곳이 전부 팔고 나갔습니다."
+        one = f"ETF {s['n_exit']}곳 전량 매도"
     elif s["kind"] == "UP":
-        one = f"ETF {n_up}곳이 주식수를 늘렸습니다." if n_up > 1 else "ETF 1곳이 주식수를 늘렸습니다."
+        one = f"ETF {n_up}곳 확대"
     elif s["kind"] == "DOWN":
-        one = f"ETF {n_dn}곳이 주식수를 줄였습니다." if n_dn > 1 else "ETF 1곳이 주식수를 줄였습니다."
+        one = f"ETF {n_dn}곳 축소"
     else:
-        return "최근 기준일에는 변화가 없습니다.", [
-            f"ETF들이 가진 물량이 평소 거래량의 {s['B']}일치입니다. ETF가 움직이면 주가 영향이 큽니다."]
-    whys = [f"추정 {'매수' if s['net'] > 0 else '매도'} 규모는 약 {amt:,.0f}억 원, 평소 하루 거래대금의 {s['str']}배입니다."]
+        return "변화 없음", [f"ETF 보유 = 거래량 {s['B']}일치"]
+    whys = [f"추정 {'매수' if s['net'] > 0 else '매도'} {amt:,.0f}억 · 하루 거래대금의 {s['str']}배"]
     if act:
-        whys.append(f"그중 {act}곳은 운용역이 직접 고르는 액티브 ETF입니다.")
+        whys.append(f"액티브 ETF {act}곳 포함")
     if abs(s["streak"]) >= 3:
-        whys.append(f"{abs(s['streak'])}거래일 연속 {'늘리는' if s['streak'] > 0 else '줄이는'} 중입니다.")
-    whys.append(f"ETF 보유 물량이 평소 거래량의 {s['B']}일치라 ETF 매매에 민감한 종목입니다.")
+        whys.append(f"{abs(s['streak'])}일 연속 {'확대' if s['streak'] > 0 else '축소'}")
+    whys.append(f"ETF 보유 = 거래량 {s['B']}일치")
     return one, whys
 
 
