@@ -3,7 +3,7 @@
     python scripts/publish_site.py [서버 주소] [출력 폴더] [--live]
 
 도커 exec 에 기대지 않는다: 서버 주소만 닿으면 어느 컴퓨터에서든 돌릴 수 있다.
---live 는 장중 값(live.json)만 다시 받는다 — 몇 분마다 돌릴 때.
+--live 는 장중 값(live.json)만 다시 받는다 — 몇 분마다 돌릴 때. 단, 기준일이 바뀌어 있으면 전부 다시 만든다.
 """
 from __future__ import annotations
 
@@ -35,15 +35,24 @@ def etf_codes(b: dict) -> set[str]:
     return codes
 
 
+def stale(out: Path, b: dict) -> bool:
+    """--live 라도 서버 기준일이 사이트에 올라간 것과 다르면 전부 다시 만든다 — 아침 수집이 끝난 뒤 첫 실행이 그렇다."""
+    try:
+        old = json.loads((out / "data" / "bootstrap.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return True
+    return old.get("asof") != b.get("asof")
+
+
 def main() -> None:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     base = (args[0] if args else "http://127.0.0.1:3200").rstrip("/")
     out = Path(args[1]) if len(args) > 1 else ROOT / "site"
     write(out / "data" / "live.json", get(base, "/api/live"))
-    if "--live" in sys.argv:
+    b = get(base, "/api/bootstrap")
+    if "--live" in sys.argv and not stale(out, b):
         print("live.json 갱신")
         return
-    b = get(base, "/api/bootstrap")
     b["watch"], b["alerts"], b["collecting"] = [], False, False  # 공개 파일 — 개인 관심종목·서버 상태는 싣지 않는다
     shutil.copyfile(ROOT / "app" / "web" / "index.html", out / "index.html")
     (out / ".nojekyll").write_text("", encoding="utf-8")
