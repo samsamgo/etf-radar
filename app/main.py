@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import logging
 import threading
 from contextlib import asynccontextmanager
@@ -12,7 +13,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
-from . import build, collector, config, db, intraday, notifier
+from . import build, collector, config, db, edges, intraday, notifier, strategy
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("main")
@@ -30,6 +31,14 @@ def collect_job() -> None:
             notifier.send(notifier.failure(res["msg"]))
             return
         b = build.cached()
+        try:  # 실전 성적 기록 — 실패해도 알림·화면은 그대로
+            with db.session() as con:
+                edges.log_signals(con, b)
+                db.set_meta(con, "track", json.dumps(edges.track(con, build.markets(con)), ensure_ascii=False))
+            build.invalidate()
+            b = build.cached()
+        except Exception:  # noqa: BLE001
+            log.exception("실전 성적 기록 실패")
         with db.session() as con:  # 새 기준일이 처음 잡힌 실행에서만 요약을 보낸다
             if b.get("asof") and db.get_meta(con, "notified_date") != b["asof"]:
                 msg = notifier.daily_summary(b)
@@ -37,6 +46,20 @@ def collect_job() -> None:
                     db.set_meta(con, "notified_date", b["asof"])
     finally:
         _collecting.release()
+    plan_job()
+
+
+def plan_job() -> None:
+    """수집 뒤 투자 계획(V3B)을 다시 계산한다. 주문이 새로 생기면 한 통 보낸다(같은 신호일·같은 주문표는 다시 보내지 않는다)."""
+    plan = strategy.run()
+    if not plan:
+        return
+    with db.session() as con:
+        key = f"{plan['asof']}|{len(plan['diff']['orders'])}|{plan['exec_date']}"
+        if plan["diff"]["orders"] and db.get_meta(con, "plan_notified") != key:
+            msg = notifier.plan_summary(plan)
+            if msg and notifier.send(msg):
+                db.set_meta(con, "plan_notified", key)
 
 
 @asynccontextmanager
@@ -52,6 +75,11 @@ async def lifespan(app: FastAPI):
         empty = con.execute("SELECT COUNT(*) FROM holding").fetchone()[0] == 0
     if empty:  # 처음 켠 서버는 바로 한 번 모은다 — 하루라도 빨리 쌓여야 비교가 시작된다
         threading.Thread(target=collect_job, daemon=True).start()
+    else:
+        with db.session() as con:
+            has_plan = db.get_meta(con, "plan") is not None
+        if not has_plan:  # 계획 기능이 처음 켜진 서버: 수집을 기다리지 않고 바로 계산한다
+            threading.Thread(target=plan_job, daemon=True).start()
     yield
     sched.shutdown(wait=False)
 
@@ -138,6 +166,21 @@ def api_watch_remove(code: str):
     intraday.watch_remove(code)
     build.invalidate()
     return {"watch": build.cached()["watch"]}
+
+
+@app.get("/api/plan")
+def api_plan():
+    with db.session() as con:
+        plan = strategy.latest(con)
+    return {**(plan or {"asof": None}), "running": strategy.running()}
+
+
+@app.post("/api/plan/run")
+def api_plan_run():
+    if strategy.running():
+        return {"started": False, "msg": "이미 계산 중입니다"}
+    threading.Thread(target=plan_job, daemon=True).start()
+    return {"started": True}
 
 
 @app.post("/api/collect")

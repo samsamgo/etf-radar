@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from . import config, db, scoring, sources
+from . import config, db, edges, scoring, sources
 from .themes import theme_of
 
 log = logging.getLogger("collector")
@@ -175,6 +175,20 @@ def compute(date: str | None = None) -> str | None:
     return date
 
 
+def _backfill_history(date: str | None) -> int:
+    """오늘 ETF 가 산 종목의 1년 가격 이력(주도주·52주 고가 판정용). 실패해도 수집은 성공으로 둔다 — 근거 표시만 빠진다."""
+    if not date:
+        return 0
+    try:
+        with db.session() as con:
+            codes = [r[0] for r in con.execute(
+                "SELECT stock_code FROM change WHERE date=? GROUP BY stock_code HAVING SUM(amount)>0", (date,))]
+        return edges.backfill(codes)
+    except Exception:  # noqa: BLE001
+        log.exception("가격 이력 보충 실패")
+        return 0
+
+
 def run(limit: int | None = None) -> dict:
     started = datetime.now(KST).isoformat(timespec="seconds")
     try:
@@ -183,6 +197,7 @@ def run(limit: int | None = None) -> dict:
         # 새로 편입된 종목은 언제든 생기고, 하루치 평균으로 계산한 '며칠치 거래량'은 믿을 수 없다.
         res["backfilled"] = backfill_amounts()
         res["date"] = compute()
+        res["history"] = _backfill_history(res["date"])
         res["ok"], res["msg"] = True, f"ETF {res['etfs']}개 수집"
     except Exception as ex:
         log.exception("수집 실패")

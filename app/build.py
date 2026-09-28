@@ -5,7 +5,7 @@ import json
 from datetime import date as Date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from . import config, db, scoring
+from . import config, db, edges, scoring
 
 KST = ZoneInfo("Asia/Seoul")
 KIND_KO = {"NEW": "신규편입", "EXIT": "편출", "UP": "확대", "DOWN": "축소"}
@@ -19,16 +19,29 @@ def _second_thursday(y: int, m: int) -> Date:
 
 
 def index_events(today: Date, months: int = 7) -> list[dict]:
-    """코스피200·코스닥150 정기변경: 6·12월 선물만기일(둘째 목요일) 다음 영업일 — 규칙으로 계산한 '예상일'."""
+    """코스피200·코스닥150 정기변경: 6·12월 선물만기일(둘째 목요일) 다음 영업일 — 규칙으로 계산한 '예상일'.
+    거래소 발표는 2021~2026 11번 모두 편입일 16~24일 전 장 마감 후였다(research/cache/ann_dates.json)."""
     out, y, m = [], today.year, today.month
     for _ in range(months):
         if m in (6, 12):
             d = _second_thursday(y, m) + timedelta(days=1)
+            ann = d - timedelta(days=21)
+            if ann >= today:
+                out.append({"date": ann.isoformat(), "t": "지수 정기변경 발표(무렵)", "s": "지수 정기변경",
+                            "note": "예상 · 편입일 16~24일 전 장 마감 후. 과거 11번: 발표 다음날 코스닥150 신규편입 종목을 "
+                                    "사서 편입 전날 팔면 지수 대비 평균 +3.2%(비용 뺀 값), 다만 중앙값은 0% — 몇 종목이 크게 올라 만든 평균", "x": []})
             if d >= today:
                 out.append({"date": d.isoformat(), "t": "코스피200·코스닥150 정기변경", "s": "지수 정기변경",
-                            "note": "예상일 · 거래소 공지 확인", "x": []})
+                            "note": "예상일 · 거래소 공지 확인. 코스닥150 신규편입 종목은 이날 이후 60일간 지수보다 평균 −7%"
+                                    "(이긴 비율 31%) — 편입일 이후 새로 사는 것은 불리", "x": []})
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     return out
+
+
+def markets(con) -> dict[str, str]:
+    """종목 → 시장(KOSPI·KOSDAQ…). 최근 스냅샷 기준."""
+    return {r[0]: r[1] for r in con.execute(
+        "SELECT code, market FROM stock_daily WHERE market IS NOT NULL GROUP BY code HAVING date=MAX(date)")}
 
 
 def _manual_events() -> list[dict]:
@@ -89,6 +102,11 @@ def bootstrap() -> dict:
         for r in con.execute("SELECT * FROM change WHERE date=?", (d,)):
             moves.setdefault(r["stock_code"], []).append(dict(r))
         watch = [r[0] for r in con.execute("SELECT code FROM watch")]
+        track_json = db.get_meta(con, "track")  # 실전 성적(edges.track) — 수집 때 계산해 둔 것
+        # 검증된 근거(edges.py) 판정용: 시장지수 이력 · 종목의 시장 · 코스닥150 편입 직후 종목
+        idx = {m: edges.closes(con, m) for m in ("KS11", "KQ11")}
+        market = markets(con)
+        q150 = edges.q150_recent(con, d)
 
         rank = sorted(agg, key=lambda k: -agg[k]["score"])
         # 화면 기본값이 리츠·시총 10조 초과를 빼므로, 걸러진 뒤에도 목록이 충분하도록 넉넉히 보낸다
@@ -110,10 +128,19 @@ def bootstrap() -> dict:
             hist = con.execute("SELECT date, held_shares, net FROM stock_agg WHERE code=? ORDER BY date DESC LIMIT 20", (k,)).fetchall()[::-1]
             s["hist"] = [{"d": h["date"], "v": round(h["held_shares"])} for h in hist]
             s["streak"] = scoring.streak([h["net"] or 0 for h in hist])
-            s["px"] = [r["close"] for r in con.execute(
-                "SELECT close FROM stock_daily WHERE code=? AND close>0 ORDER BY date DESC LIMIT 30", (k,)).fetchall()[::-1]]
-            # 확신도(0~100): 몇 곳이 움직였나(곳당 10, 최대 40) + 평소 거래 대비 규모(1배=40, 최대 40) + 액티브(곳당 10, 최대 20)
-            s["conv"] = round(min(40, 10 * len(mv)) + min(40, 40 * s["str"]) + min(20, 10 * s["n_act_moves"])) if mv else 0
+            pxh = edges.closes(con, k)
+            s["px"] = [c for _, c in pxh[-30:]]
+            buys = [m for m in mv if m["amount"] > 0 and m["etf_code"] in etf]
+            rel60, hi52 = edges.features(pxh, idx["KS11" if market.get(k) == "KOSPI" else "KQ11"])
+            active_buy = any(etf[m["etf_code"]]["is_active"] for m in buys)
+            ed = edges.judge(net, s["cap"], rel60, hi52,
+                             theme_buy=any(etf[m["etf_code"]]["theme"] not in edges.NOT_THEME for m in buys),
+                             active_buy=active_buy, q150_recent=k in q150)
+            s["rel60"] = round(rel60 * 100, 1) if rel60 is not None else None  # 시장 대비 60거래일, %
+            s["hi52"] = round(hi52 * 100) if hi52 is not None else None       # 52주 최고가 대비, %
+            s["edges"] = [{"k": e, **edges.EDGE_INFO[e]} for e in ed]
+            # 확신도(0~100) — 계산식과 근거는 edges.conviction
+            s["conv"] = edges.conviction(len(mv), s["str"], s["n_act_moves"], active_buy, ed, net)
             s["div"] = bool(s["n_up"] and s["n_down"])  # 어떤 ETF는 사고 어떤 ETF는 판다
             by_move = {m["etf_code"]: m for m in mv}
             s["holders"] = sorted(
@@ -131,7 +158,8 @@ def bootstrap() -> dict:
             s["tags"] = ([KIND_KO[s["kind"]]] if s["kind"] else []) + (["엇갈림"] if s["div"] else []) + \
                         ([f"액티브 {s['n_act_moves']}곳"] if s["n_act_moves"] else []) + \
                         ([f"{abs(s['streak'])}일 연속"] if abs(s["streak"]) >= 3 else []) + \
-                        (["상한 근접(추정)"] if any(h["w"] >= config.CAP_WARN_WEIGHT and etf[h["etf"]]["theme"] != "시장대표" for h in s["holders"]) else [])
+                        (["상한 근접(추정)"] if any(h["w"] >= config.CAP_WARN_WEIGHT and etf[h["etf"]]["theme"] != "시장대표" for h in s["holders"]) else []) + \
+                        [e["t"] for e in s["edges"]]
             s["why"], s["whys"] = _why(s)
             stocks[k] = s
 
@@ -171,7 +199,8 @@ def bootstrap() -> dict:
     return {**base, "asof": d, "prev": prev_d, "stocks": stocks,
             "signals": {"up": up, "down": [s["code"] for s in sorted(sig, key=order) if s["net"] < 0]},
             "picks": picks, "pickMode": pick_mode, "trades": trades[:400], "tradeCount": len(trades),
-            "rank": [k for k in rank if k in stocks], "themes": themes_out, "watch": watch, "hotEtfs": hot_out}
+            "rank": [k for k in rank if k in stocks], "themes": themes_out, "watch": watch, "hotEtfs": hot_out,
+            "track": json.loads(track_json) if track_json else None}
 
 
 def etf_detail(code: str) -> dict | None:

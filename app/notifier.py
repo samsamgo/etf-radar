@@ -64,5 +64,25 @@ def daily_summary(b: dict) -> str | None:
     return msg + link()
 
 
+def plan_summary(p: dict) -> str | None:
+    """투자 계획(V3B)에 주문이 생기면 한 통. 종목 수가 많으면 큰 것부터 8개만 — 나머지는 화면 '투자 계획' 탭."""
+    orders = p.get("diff", {}).get("orders") or []
+    if not orders:
+        return None
+    head = f"**투자 계획** · {p['asof']} 종가 기준 → **{p['exec_date']} 종가 체결**"
+    if not p["diff"].get("has_prev"):
+        head += "\n(첫 계산이라 전량 신규로 나옵니다 — 이미 들고 있는 것은 빼고 보세요)"
+    legs = p["sleeves"].get("core", {}).get("legs") or {}
+    core = " · ".join(f"{v['name']} {'켜짐' if v['on'] else '꺼짐'}" for v in legs.values())
+    lines = [head, f"코어(10개월선): {core}" if core else ""]
+    for o in orders[:8]:
+        lines.append(f"{'▲ 매수' if o['side'] == 'BUY' else '▼ 매도'} {o['name']} {abs(o['delta_pct']):.2f}%p (→ {o['to_pct']:.2f}%)")
+    if len(orders) > 8:
+        lines.append(f"… 외 {len(orders) - 8}건")
+    if p.get("failed"):
+        lines.append(f"⚠ 계산 실패 갈래: {', '.join(p['failed'])}")
+    return "\n".join(x for x in lines if x) + link()
+
+
 def failure(msg: str) -> str:
     return f"**ETF 매집 레이더 · 수집 실패**\n{msg}\n데이터가 하루 비면 시그널이 끊깁니다. 서버 로그를 확인하세요."

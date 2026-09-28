@@ -17,6 +17,7 @@ CREATE INDEX IF NOT EXISTS ix_holding_stock ON holding(stock_code, date);
 CREATE TABLE IF NOT EXISTS stock_daily(
   date TEXT, code TEXT, name TEXT, market TEXT, close REAL, amount REAL, marcap REAL,
   PRIMARY KEY(date, code));
+CREATE INDEX IF NOT EXISTS ix_stock_daily_code ON stock_daily(code, date);  -- 종목별 가격 이력 조회
 CREATE TABLE IF NOT EXISTS change(     -- ETF 한 곳이 종목 하나를 어떻게 바꿨나
   date TEXT, etf_code TEXT, stock_code TEXT, stock_name TEXT, kind TEXT, pct REAL,
   w_prev REAL, w_cur REAL, amount REAL,
@@ -26,6 +27,16 @@ CREATE TABLE IF NOT EXISTS stock_agg(  -- 종목 하루 요약
   date TEXT, code TEXT, held REAL, hot_held REAL, etf_n INTEGER, act_n INTEGER,
   a REAL, b REAL, c REAL, score INTEGER, net REAL, held_shares REAL,
   PRIMARY KEY(date, code));
+CREATE TABLE IF NOT EXISTS px_hist(   -- 수정주가 종가 1년치(신호 종목·시장지수 KS11/KQ11). 60일 주도주·52주 고가용
+  code TEXT, date TEXT, close REAL, PRIMARY KEY(code, date));
+CREATE TABLE IF NOT EXISTS signal_log(  -- 레이더가 띄운 신호(실전 성적 기록용). side = up|down, edges = 근거 키 쉼표 목록
+  date TEXT, code TEXT, side TEXT, kind TEXT, conv INTEGER, edges TEXT, close REAL, cap REAL, PRIMARY KEY(date, code));
+CREATE TABLE IF NOT EXISTS series(   -- 투자 계획용 외부 시리즈(S&P·금·환율·VIX·지수 ETF 종가, FinanceDataReader)
+  key TEXT, date TEXT, value REAL, PRIMARY KEY(key, date));
+CREATE TABLE IF NOT EXISTS fund(     -- 종목 PBR·BPS·EPS(네이버 종목 페이지, 월 1회). 저PBR 갈래·'PBR 하위 절반' 판정용
+  code TEXT PRIMARY KEY, asof TEXT, pbr REAL, bps REAL, eps REAL, per REAL);
+CREATE TABLE IF NOT EXISTS plan_log( -- 날짜별 투자 계획(strategy.compute 결과 JSON). 나중에 실제 성적을 되짚어 볼 근거
+  date TEXT PRIMARY KEY, exec_date TEXT, json TEXT);
 CREATE TABLE IF NOT EXISTS watch(code TEXT PRIMARY KEY, added TEXT);
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
 """

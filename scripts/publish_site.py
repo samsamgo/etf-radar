@@ -57,6 +57,10 @@ def main() -> None:
     shutil.copyfile(ROOT / "app" / "web" / "index.html", out / "index.html")
     (out / ".nojekyll").write_text("", encoding="utf-8")
     write(out / "data" / "bootstrap.json", b)
+    try:  # 투자 계획(V3B) — 계획 기능이 없는 옛 서버면 빠진 채로 올린다
+        write(out / "data" / "plan.json", get(base, "/api/plan"))
+    except Exception as ex:  # noqa: BLE001
+        print("plan 건너뜀:", ex)
     shutil.rmtree(out / "data" / "etf", ignore_errors=True)
     codes, n = sorted(etf_codes(b)), 0
     for c in codes:
