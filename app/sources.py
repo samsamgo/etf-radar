@@ -122,7 +122,7 @@ def market_flow_series(market: str, bizdate: str) -> list[dict]:
         r.raise_for_status()
         j = r.json()
         rows = j.get("content") or []
-        out += [_flow_row(x) for x in rows]
+        out += [_flow_row(x) for x in rows if x.get("bizdate") == bizdate]  # bizdate 를 무시하고 최근 거래일을 줄 때가 있다
         if j.get("last", True) or not rows:
             break
         idx += 1
@@ -148,7 +148,7 @@ def market_flows(market: str, bizdate: str) -> dict | None:
     """
     r = requests.get(MARKET_TREND_URL.format(m=market, d=bizdate), headers=_NAVER_STOCK, timeout=10)
     r.raise_for_status()
-    rows = r.json().get("content") or []
+    rows = [x for x in r.json().get("content") or [] if x.get("bizdate") == bizdate]  # 장 시작 직후엔 전날 것을 준다
     if not rows:
         return None  # 휴장일이거나 장 시작 전
     out = _flow_row(rows[0])
