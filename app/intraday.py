@@ -62,10 +62,13 @@ def tick() -> None:
     except Exception as ex:
         log.warning("장중 시세 실패: %s", ex)
         return
-    market, series = {}, {}
+    # 수급은 같은 날 것만 이어 쓴다. 장 시작 직후엔 값이 비는데, 그때 어제 선을 남겨 두면
+    # 다음 틱이 그것을 오늘 선으로 알고 이어 붙여 선이 15:30 → 09:00 으로 되돌아가며 겹쳤다
+    with _lock:
+        same_day = _state["day"] == day
+        old = _state["series"] if same_day else {}
+        market, series = dict(_state["market"] if same_day else {}), dict(old)
     if config.MARKET_FLOWS:  # 시세와 따로 감싼다 — 수급이 깨져도 시세는 계속 나가야 한다
-        with _lock:
-            old = _state["series"] if _state["day"] == day else {}
         for m in MARKETS:
             try:
                 flows = sources.market_flows(m, day)
@@ -81,7 +84,7 @@ def tick() -> None:
     with _lock:
         _state.update(open=rt["open"], at=now.isoformat(timespec="seconds"), day=day, quotes=rt["quotes"], index=index,
                       etfs=sorted(etfs, key=lambda e: -(e["chg"] or 0)), themes=themes,
-                      market=market or _state["market"], series=series or _state["series"])
+                      market=market, series=series)
     if rt["open"]:
         _alert(b, rt["quotes"])
 
